@@ -74,6 +74,130 @@ paths:
         - bearer: []
       summary: Obtener el perfil del usuario autenticado
       tags: *ref_0
+  /api/documents:
+    post:
+      operationId: DocumentsController_upload
+      parameters: []
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                file:
+                  type: string
+                  format: binary
+      responses:
+        '201':
+          description: Documento subido correctamente
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Document'
+      summary: Subir un documento de gasto (JPG, PNG o PDF)
+      tags: &ref_1
+        - Documentos
+    get:
+      operationId: DocumentsController_findAll
+      parameters:
+        - name: from
+          required: false
+          in: query
+          description: Fecha inicial del documento (YYYY-MM-DD)
+          schema:
+            example: '2026-08-01'
+            type: string
+        - name: to
+          required: false
+          in: query
+          description: Fecha final del documento (YYYY-MM-DD)
+          schema:
+            example: '2026-08-31'
+            type: string
+        - name: category
+          required: false
+          in: query
+          description: Filtrar por categoría del gasto
+          schema:
+            type: string
+            enum:
+              - alimentacion
+              - transporte
+              - tecnologia
+              - servicios
+              - otros
+      responses:
+        '200':
+          description: Lista de documentos
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Document'
+      summary: Listar documentos (filtrable por rango de fechas y categoría)
+      tags: *ref_1
+  /api/documents/{id}:
+    get:
+      operationId: DocumentsController_findOne
+      parameters:
+        - name: id
+          required: true
+          in: path
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Documento encontrado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Document'
+        '404':
+          description: Documento no encontrado
+      summary: Consultar un documento por su id
+      tags: *ref_1
+    patch:
+      operationId: DocumentsController_update
+      parameters:
+        - name: id
+          required: true
+          in: path
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateDocumentDto'
+      responses:
+        '200':
+          description: Documento actualizado y marcado como revisado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Document'
+        '404':
+          description: Documento no encontrado
+      summary: Corregir o completar los campos de un documento (revisión humana)
+      tags: *ref_1
+    delete:
+      operationId: DocumentsController_remove
+      parameters:
+        - name: id
+          required: true
+          in: path
+          schema:
+            type: string
+      responses:
+        '204':
+          description: Documento eliminado
+        '404':
+          description: Documento no encontrado
+      summary: Eliminar un documento y su archivo asociado
+      tags: *ref_1
 info:
   title: API de Prueba Técnica
   description: Documentación de la API en español
@@ -152,3 +276,186 @@ components:
       required:
         - email
         - password
+    Document:
+      type: object
+      properties:
+        id:
+          type: string
+          example: 3f2c1e9a-8b5d-4c1a-9f3e-2a1b4c5d6e7f
+          description: Identificador único del documento
+        originalName:
+          type: string
+          example: factura-1234.jpg
+          description: Nombre original del archivo subido
+        storageKey:
+          type: string
+          example: documents/2026-08-13/factura-1234.jpg
+          description: Clave del objeto en el almacenamiento (S3/MinIO)
+        mimeType:
+          type: string
+          example: image/jpeg
+          description: Tipo MIME del archivo
+        sizeBytes:
+          type: number
+          example: 245760
+          description: Tamaño del archivo en bytes
+        status:
+          type: string
+          enum:
+            - pending
+            - processing
+            - needs_review
+            - ready
+            - failed
+          example: pending
+          description: Estado actual del procesamiento del documento
+        rawText:
+          type: object
+          example: |-
+            FACTURA ELECTRONICA
+            Proveedor XYZ...
+          description: Texto crudo obtenido mediante OCR
+          nullable: true
+        provider:
+          type: object
+          example: Proveedor XYZ
+          description: Proveedor o establecimiento detectado
+          nullable: true
+        invoiceNumber:
+          type: object
+          example: A-12345
+          description: Número de factura o documento
+          nullable: true
+        issueDate:
+          type: object
+          example: '2026-08-13'
+          description: Fecha del documento (formato YYYY-MM-DD)
+          nullable: true
+        subtotal:
+          type: object
+          example: 100.5
+          description: Subtotal del documento
+          nullable: true
+        taxes:
+          type: object
+          example: 21
+          description: Impuestos del documento
+          nullable: true
+        total:
+          type: object
+          example: 121.5
+          description: Total del documento
+          nullable: true
+        currency:
+          type: object
+          example: EUR
+          description: Moneda del documento (código ISO 4217)
+          nullable: true
+        category:
+          type: string
+          enum:
+            - alimentacion
+            - transporte
+            - tecnologia
+            - servicios
+            - otros
+          example: otros
+          description: Categoría asignada al gasto
+          nullable: true
+        confidence:
+          type: object
+          example:
+            provider: 0.9
+            total: 0.98
+          description: Nivel de confianza (0-1) por campo, obtenido durante la extracción
+          nullable: true
+        extractionRaw:
+          type: object
+          example:
+            provider:
+              value: XYZ
+              source: regex
+          description: Resultado crudo de la extracción (con fuentes por campo)
+          nullable: true
+        needsReview:
+          type: boolean
+          example: true
+          description: Indica si el documento requiere revisión humana
+        errorMessage:
+          type: object
+          example: No se pudo leer el archivo
+          description: Mensaje de error del procesamiento, si aplica
+          nullable: true
+        createdAt:
+          format: date-time
+          type: string
+          example: '2026-08-13T10:00:00.000Z'
+          description: Fecha y hora de creación del registro
+        updatedAt:
+          format: date-time
+          type: string
+          example: '2026-08-13T10:00:00.000Z'
+          description: Fecha y hora de la última actualización
+        downloadUrl:
+          type: string
+          example: http://localhost:9000/documentos/...
+          description: URL de descarga firmada (no persistida)
+          nullable: true
+      required:
+        - id
+        - originalName
+        - storageKey
+        - mimeType
+        - sizeBytes
+        - status
+        - createdAt
+        - updatedAt
+    UpdateDocumentDto:
+      type: object
+      properties:
+        provider:
+          type: object
+          example: ACME Supermercado S.A.
+          description: Proveedor o establecimiento
+          nullable: true
+        invoiceNumber:
+          type: object
+          example: F-2026-00123
+          description: Número de factura o documento
+          nullable: true
+        issueDate:
+          type: object
+          example: '2026-08-13'
+          description: Fecha del documento (YYYY-MM-DD)
+          nullable: true
+        subtotal:
+          type: object
+          example: 100
+          description: Subtotal
+          nullable: true
+        taxes:
+          type: object
+          example: 21
+          description: Impuestos
+          nullable: true
+        total:
+          type: object
+          example: 121
+          description: Total
+          nullable: true
+        currency:
+          type: object
+          example: EUR
+          description: Moneda
+          nullable: true
+        category:
+          type: string
+          enum:
+            - alimentacion
+            - transporte
+            - tecnologia
+            - servicios
+            - otros
+          example: alimentacion
+          description: Categoría del gasto
+          nullable: true

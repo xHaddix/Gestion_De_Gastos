@@ -64,18 +64,31 @@ export class VisionExtractorService implements OnModuleInit {
       return {};
     }
 
-    try {
-      const result = await this.model.generateContent([
-        { text: VISION_PROMPT },
-        { inlineData: { mimeType, data: image.toString('base64') } },
-      ]);
+    const maxAttempts = 2;
+    const base64 = image.toString('base64');
 
-      return parseExtractionJson(result.response.text(), 'vision');
-    } catch (error) {
-      this.logger.warn(
-        `Extracción por visión falló (${(error as Error).message}). Se usará el OCR y las reglas.`,
-      );
-      return {};
+    for (let attempt = 1; ; attempt++) {
+      try {
+        const result = await this.model.generateContent([
+          { text: VISION_PROMPT },
+          { inlineData: { mimeType, data: base64 } },
+        ]);
+
+        return parseExtractionJson(result.response.text(), 'vision');
+      } catch (error) {
+        const message = (error as Error).message;
+        if (attempt < maxAttempts) {
+          this.logger.warn(
+            `Extracción por visión (intento ${attempt}) falló (${message}). Reintentando…`,
+          );
+          await new Promise((resolve) => setTimeout(resolve, 1500 * attempt));
+          continue;
+        }
+        this.logger.warn(
+          `Extracción por visión falló (${message}). Se usará el OCR y las reglas.`,
+        );
+        return {};
+      }
     }
   }
 }

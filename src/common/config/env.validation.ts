@@ -105,6 +105,10 @@ class EnvironmentVariables {
   @IsOptional()
   @IsString()
   GEMINI_MODEL?: string;
+
+  @IsOptional()
+  @IsString()
+  TESSDATA_PATH?: string;
 }
 
 export function validate(config: Record<string, unknown>) {

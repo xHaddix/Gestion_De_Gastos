@@ -1,4 +1,4 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable, Logger, OnModuleInit } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import OpenAI from 'openai';
 import { ExpenseCategory } from '../../documents/model/document.entity';
@@ -42,7 +42,7 @@ const JSON_TO_FIELD: [string, FieldName][] = [
 ];
 
 @Injectable()
-export class LlmExtractorService {
+export class LlmExtractorService implements OnModuleInit {
   private readonly logger = new Logger(LlmExtractorService.name);
   private readonly client: OpenAI | null;
   private readonly model: string;
@@ -55,6 +55,16 @@ export class LlmExtractorService {
     this.client = apiKey
       ? new OpenAI({ apiKey, ...(baseURL ? { baseURL } : {}) })
       : null;
+  }
+
+  onModuleInit(): void {
+    if (this.client) {
+      this.logger.log(`Extracción con LLM habilitada (modelo: ${this.model})`);
+    } else {
+      this.logger.warn(
+        'Extracción con LLM deshabilitada (LLM_API_KEY no definido). Se usarán solo reglas.',
+      );
+    }
   }
 
   isEnabled(): boolean {

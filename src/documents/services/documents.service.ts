@@ -9,6 +9,7 @@ import {
 } from '../../extraction/types/extraction-result.types';
 import { OcrService } from '../../ocr/ocr.service';
 import { StorageService } from '../../storage/storage.service';
+import { QueryDocumentsDto } from '../dto/query-documents.dto';
 import { UpdateDocumentDto } from '../dto/update-document.dto';
 import {
   Document,
@@ -64,11 +65,24 @@ export class DocumentsService {
     return this.attachDownloadUrl(await this.documentsRepository.save(saved));
   }
 
-  async findAll(): Promise<Document[]> {
-    const documents = await this.documentsRepository.find({
-      order: { createdAt: 'DESC' },
-    });
+  async findAll(query: QueryDocumentsDto = {}): Promise<Document[]> {
+    const builder = this.documentsRepository
+      .createQueryBuilder('document')
+      .orderBy('document.createdAt', 'DESC');
 
+    if (query.from) {
+      builder.andWhere('document.issueDate >= :from', { from: query.from });
+    }
+    if (query.to) {
+      builder.andWhere('document.issueDate <= :to', { to: query.to });
+    }
+    if (query.category) {
+      builder.andWhere('document.category = :category', {
+        category: query.category,
+      });
+    }
+
+    const documents = await builder.getMany();
     return Promise.all(documents.map((doc) => this.attachDownloadUrl(doc)));
   }
 

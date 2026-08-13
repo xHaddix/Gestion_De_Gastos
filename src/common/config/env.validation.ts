@@ -88,11 +88,15 @@ class EnvironmentVariables {
 
   @IsOptional()
   @IsString()
-  OPENAI_API_KEY?: string;
+  LLM_API_KEY?: string;
 
   @IsOptional()
   @IsString()
-  OPENAI_MODEL?: string;
+  LLM_BASE_URL?: string;
+
+  @IsOptional()
+  @IsString()
+  LLM_MODEL?: string;
 }
 
 export function validate(config: Record<string, unknown>) {

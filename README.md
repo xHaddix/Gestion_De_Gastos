@@ -184,7 +184,7 @@ El resultado se guarda en el campo `rawText` del documento.
 Tras el OCR, el sistema extrae los campos estructurados (proveedor, número de factura, fecha, subtotal, impuestos, total, moneda y categoría) combinando dos estrategias:
 
 1. **Reglas y expresiones regulares** (`RulesExtractorService`): siempre activas, deterministas y sin coste.
-2. **LLM opcional** (`LlmExtractorService`): se usa únicamente si se define `OPENAI_API_KEY` en el entorno.
+2. **LLM opcional** (`LlmExtractorService`): se usa únicamente si se define `LLM_API_KEY`. Compatible con **OpenAI**, **DeepSeek** o cualquier proveedor con API estilo OpenAI (configurable con `LLM_BASE_URL` y `LLM_MODEL`).
 
 Ambos resultados se **fusionan** campo a campo. Si coinciden, la confianza es alta; si discrepan, el valor se marca con confianza baja. Cada campo recibe un **nivel de confianza (0-1)** que se guarda en el documento.
 

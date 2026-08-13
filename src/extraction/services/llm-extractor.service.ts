@@ -45,10 +45,16 @@ const JSON_TO_FIELD: [string, FieldName][] = [
 export class LlmExtractorService {
   private readonly logger = new Logger(LlmExtractorService.name);
   private readonly client: OpenAI | null;
+  private readonly model: string;
 
   constructor(private readonly configService: ConfigService) {
-    const apiKey = this.configService.get<string>('OPENAI_API_KEY');
-    this.client = apiKey ? new OpenAI({ apiKey }) : null;
+    const apiKey = this.configService.get<string>('LLM_API_KEY');
+    const baseURL = this.configService.get<string>('LLM_BASE_URL');
+
+    this.model = this.configService.get<string>('LLM_MODEL', 'gpt-4o-mini');
+    this.client = apiKey
+      ? new OpenAI({ apiKey, ...(baseURL ? { baseURL } : {}) })
+      : null;
   }
 
   isEnabled(): boolean {
@@ -60,11 +66,9 @@ export class LlmExtractorService {
       return {};
     }
 
-    const model = this.configService.get<string>('OPENAI_MODEL', 'gpt-4o-mini');
-
     try {
       const response = await this.client.chat.completions.create({
-        model,
+        model: this.model,
         temperature: 0,
         response_format: { type: 'json_object' },
         messages: [

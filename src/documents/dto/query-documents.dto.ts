@@ -1,6 +1,7 @@
 import { ApiPropertyOptional } from '@nestjs/swagger';
+import { Transform } from 'class-transformer';
 import { IsBoolean, IsDateString, IsEnum, IsOptional } from 'class-validator';
-import { ExpenseCategory } from '../model/document.entity';
+import { DocumentStatus, ExpenseCategory } from '../model/document.entity';
 
 export class QueryDocumentsDto {
   @ApiPropertyOptional({
@@ -28,11 +29,20 @@ export class QueryDocumentsDto {
   category?: ExpenseCategory;
 
   @ApiPropertyOptional({
+    enum: DocumentStatus,
+    description: 'Filtrar por estado del documento',
+  })
+  @IsOptional()
+  @IsEnum(DocumentStatus)
+  status?: DocumentStatus;
+
+  @ApiPropertyOptional({
     example: true,
     description:
       'Filtrar documentos que requieren revisión (campos incompletos o de baja confianza)',
   })
   @IsOptional()
   @IsBoolean()
+  @Transform(({ value }) => value === 'true' || value === '1' || value === true)
   needsReview?: boolean;
 }

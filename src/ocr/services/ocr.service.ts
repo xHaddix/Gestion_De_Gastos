@@ -1,5 +1,12 @@
 import { Injectable, Logger, OnModuleDestroy } from '@nestjs/common';
-import { createCanvas, DOMMatrix, ImageData, Path2D } from '@napi-rs/canvas';
+import {
+  createCanvas,
+  DOMMatrix,
+  Image,
+  ImageData,
+  Path2D,
+  loadImage,
+} from '@napi-rs/canvas';
 import * as os from 'os';
 import * as path from 'path';
 import { createWorker, setLogging, Worker } from 'tesseract.js';
@@ -12,6 +19,8 @@ g.ImageData = ImageData;
 const PDF_MIME_TYPE = 'application/pdf';
 const RENDER_SCALE = 2;
 const OCR_LANGUAGES = 'spa+eng';
+const PREPROCESS_SCALE = 2;
+const MIN_PREPROCESS_WIDTH = 1500;
 
 @Injectable()
 export class OcrService implements OnModuleDestroy {
@@ -33,13 +42,34 @@ export class OcrService implements OnModuleDestroy {
     const texts: string[] = [];
 
     for (const image of images) {
-      const { data } = await worker.recognize(image);
+      const preprocessed = await this.preprocessImage(image);
+      const { data } = await worker.recognize(preprocessed);
       if (data.text) {
         texts.push(data.text);
       }
     }
 
     return texts.join('\n\n').trim();
+  }
+
+  private async preprocessImage(buffer: Buffer): Promise<Buffer> {
+    try {
+      const image: Image = await loadImage(buffer);
+
+      const scale = image.width < MIN_PREPROCESS_WIDTH ? PREPROCESS_SCALE : 1;
+      const width = Math.round(image.width * scale);
+      const height = Math.round(image.height * scale);
+
+      const canvas = createCanvas(width, height);
+      const context = canvas.getContext('2d');
+
+      context.filter = 'grayscale(1)';
+      context.drawImage(image, 0, 0, width, height);
+
+      return canvas.toBuffer('image/png');
+    } catch {
+      return buffer;
+    }
   }
 
   private async getWorker(): Promise<Worker> {

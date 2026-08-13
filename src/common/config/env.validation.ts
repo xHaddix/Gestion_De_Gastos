@@ -66,6 +66,10 @@ class EnvironmentVariables {
   @IsNotEmpty()
   S3_ENDPOINT!: string;
 
+  @IsOptional()
+  @IsString()
+  S3_PUBLIC_ENDPOINT?: string;
+
   @IsString()
   @IsNotEmpty()
   S3_REGION!: string;

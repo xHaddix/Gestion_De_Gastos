@@ -79,6 +79,7 @@ Todas las variables se validan al arrancar (la aplicación no inicia si falta al
 | `DB_PASSWORD`        | Contraseña de PostgreSQL           | `prueba`                 |
 | `DB_DATABASE`        | Nombre de la base de datos         | `prueba_tecnica`         |
 | `S3_ENDPOINT`        | Endpoint S3-compatible (MinIO)     | `http://localhost:9000`  |
+| `S3_PUBLIC_ENDPOINT` | Endpoint público para las URLs de descarga | `http://localhost:9000` |
 | `S3_REGION`          | Región del bucket                  | `us-east-1`              |
 | `S3_ACCESS_KEY`      | Clave de acceso S3                 | `minioadmin`             |
 | `S3_SECRET_KEY`      | Clave secreta S3                   | `minioadmin`             |

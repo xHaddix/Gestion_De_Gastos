@@ -14,19 +14,36 @@ import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
 export class StorageService implements OnModuleInit {
   private readonly logger = new Logger(StorageService.name);
   private readonly client: S3Client;
+  private readonly publicClient: S3Client;
   private readonly bucket: string;
 
   constructor(private readonly configService: ConfigService) {
     this.bucket = this.configService.get<string>('S3_BUCKET', 'documentos');
+
+    const region = this.configService.get<string>('S3_REGION', 'us-east-1');
+    const credentials = {
+      accessKeyId: this.configService.get<string>('S3_ACCESS_KEY', ''),
+      secretAccessKey: this.configService.get<string>('S3_SECRET_KEY', ''),
+    };
+    const endpoint = this.configService.get<string>('S3_ENDPOINT');
+    const publicEndpoint =
+      this.configService.get<string>('S3_PUBLIC_ENDPOINT') || endpoint;
+
     this.client = new S3Client({
-      endpoint: this.configService.get<string>('S3_ENDPOINT'),
-      region: this.configService.get<string>('S3_REGION', 'us-east-1'),
-      credentials: {
-        accessKeyId: this.configService.get<string>('S3_ACCESS_KEY', ''),
-        secretAccessKey: this.configService.get<string>('S3_SECRET_KEY', ''),
-      },
+      endpoint,
+      region,
+      credentials,
       forcePathStyle: true,
     });
+    this.publicClient =
+      publicEndpoint === endpoint
+        ? this.client
+        : new S3Client({
+            endpoint: publicEndpoint,
+            region,
+            credentials,
+            forcePathStyle: true,
+          });
   }
 
   async onModuleInit(): Promise<void> {
@@ -42,10 +59,25 @@ export class StorageService implements OnModuleInit {
   }
 
   async ensureBucket(): Promise<void> {
-    try {
-      await this.client.send(new HeadBucketCommand({ Bucket: this.bucket }));
-    } catch {
-      await this.client.send(new CreateBucketCommand({ Bucket: this.bucket }));
+    const maxAttempts = 3;
+
+    for (let attempt = 1; ; attempt++) {
+      try {
+        await this.client.send(new HeadBucketCommand({ Bucket: this.bucket }));
+        return;
+      } catch {
+        try {
+          await this.client.send(
+            new CreateBucketCommand({ Bucket: this.bucket }),
+          );
+          return;
+        } catch (error) {
+          if (attempt >= maxAttempts) {
+            throw error;
+          }
+          await new Promise((resolve) => setTimeout(resolve, 500 * attempt));
+        }
+      }
     }
   }
 
@@ -68,7 +100,7 @@ export class StorageService implements OnModuleInit {
 
   async getDownloadUrl(key: string): Promise<string> {
     return getSignedUrl(
-      this.client,
+      this.publicClient,
       new GetObjectCommand({ Bucket: this.bucket, Key: key }),
       { expiresIn: 3600 },
     );

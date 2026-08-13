@@ -1,0 +1,52 @@
+services:
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: prueba-tecnica-api
+    restart: unless-stopped
+    ports:
+      - "${PORT:-3000}:${PORT:-3000}"
+    env_file:
+      - .env
+    environment:
+      DB_HOST: postgres
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  postgres:
+    image: postgres:16-alpine
+    container_name: prueba-tecnica-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${DB_USERNAME:-prueba}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-prueba}
+      POSTGRES_DB: ${DB_DATABASE:-prueba_tecnica}
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test:
+        - CMD-SHELL
+        - pg_isready -U ${DB_USERNAME:-prueba} -d ${DB_DATABASE:-prueba_tecnica}
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 5s
+
+  pgweb:
+    image: sosedoff/pgweb:latest
+    container_name: prueba-tecnica-pgweb
+    restart: unless-stopped
+    ports:
+      - "8080:8081"
+    environment:
+      PGWEB_DATABASE_URL: postgres://${DB_USERNAME:-prueba}:${DB_PASSWORD:-prueba}@postgres:5432/${DB_DATABASE:-prueba_tecnica}?sslmode=disable
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+volumes:
+  postgres_data:

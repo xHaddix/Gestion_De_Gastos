@@ -33,7 +33,7 @@ const INVOICE_PATTERNS = [
 ];
 
 const DATE_PATTERNS = [
-  /(?:fecha|date)\s*[:#]?\s*(\d{4}[/.-]\d{1,2}[/.-]\d{1,2}|\d{1,2}[/.-]\d{1,2}[/.-]\d{2,4})/i,
+  /(?:fecha(?:\s+de\s+emisi[oó]n)?|date)\s*[:#]?\s*(.{0,40})/i,
 ];
 
 const DATE_NOISE_PATTERN =
@@ -288,7 +288,7 @@ export class RulesExtractorService {
       for (const pattern of DATE_PATTERNS) {
         const match = line.match(pattern);
         if (match) {
-          const normalized = normalizeDate(match[1]);
+          const normalized = normalizeDate(match[1] ?? line);
           if (normalized) {
             return { value: normalized, confidence: 0.85, source: 'rules' };
           }
@@ -300,14 +300,9 @@ export class RulesExtractorService {
       if (DATE_NOISE_PATTERN.test(line)) {
         continue;
       }
-      const generic = line.match(
-        /\b(\d{4}[/.-]\d{1,2}[/.-]\d{1,2}|\d{1,2}[/.-]\d{1,2}[/.-]\d{2,4})\b/,
-      );
-      if (generic) {
-        const normalized = normalizeDate(generic[1]);
-        if (normalized) {
-          return { value: normalized, confidence: 0.5, source: 'rules' };
-        }
+      const normalized = normalizeDate(line);
+      if (normalized) {
+        return { value: normalized, confidence: 0.5, source: 'rules' };
       }
     }
 

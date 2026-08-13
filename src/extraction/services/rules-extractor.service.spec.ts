@@ -83,6 +83,30 @@ describe('RulesExtractorService', () => {
     expect(result.issueDate.value).toBe('2026-08-15');
   });
 
+  it('interpreta fechas con espacios entre separadores', () => {
+    const result = service.extract(
+      ['Factura', 'FECHA: 13 - 02 - 2020', 'Total: 100.00'].join('\n'),
+    );
+
+    expect(result.issueDate.value).toBe('2020-02-13');
+  });
+
+  it('interpreta fechas con nombre de mes', () => {
+    const result = service.extract(
+      ['Factura', 'Fecha: 13 de febrero de 2020', 'Total: 100.00'].join('\n'),
+    );
+
+    expect(result.issueDate.value).toBe('2020-02-13');
+  });
+
+  it('interpreta fechas con separadores de punto', () => {
+    const result = service.extract(
+      ['Factura', 'FECHA: 13.02.2020', 'Total: 100.00'].join('\n'),
+    );
+
+    expect(result.issueDate.value).toBe('2020-02-13');
+  });
+
   it('devuelve campos nulos cuando no hay información', () => {
     const result = service.extract('Texto sin datos relevantes');
 

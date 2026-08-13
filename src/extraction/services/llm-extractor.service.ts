@@ -1,9 +1,8 @@
 import { Injectable, Logger, OnModuleInit } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import OpenAI from 'openai';
-import { ExpenseCategory } from '../../documents/model/document.entity';
-import { ExtractionResult, FieldName } from '../types/extraction-result.types';
-import { stripAccents } from '../utils/text.utils';
+import { ExtractionResult } from '../types/extraction-result.types';
+import { parseExtractionJson } from '../utils/parse-extraction';
 
 const SYSTEM_PROMPT = `Eres un asistente que extrae información estructurada de documentos de gasto (facturas, recibos, tickets).
 
@@ -24,25 +23,6 @@ Reglas:
 - Usa null cuando no encuentres un campo.
 - No inventes valores.
 - Responde solo con JSON válido, sin texto adicional.`;
-
-const CATEGORY_KEYS: Record<string, ExpenseCategory> = {
-  alimentacion: ExpenseCategory.Alimentacion,
-  transporte: ExpenseCategory.Transporte,
-  tecnologia: ExpenseCategory.Tecnologia,
-  servicios: ExpenseCategory.Servicios,
-  otros: ExpenseCategory.Otros,
-};
-
-const JSON_TO_FIELD: [string, FieldName][] = [
-  ['provider', 'provider'],
-  ['invoiceNumber', 'invoiceNumber'],
-  ['date', 'issueDate'],
-  ['subtotal', 'subtotal'],
-  ['taxes', 'taxes'],
-  ['total', 'total'],
-  ['currency', 'currency'],
-  ['category', 'category'],
-];
 
 @Injectable()
 export class LlmExtractorService implements OnModuleInit {
@@ -91,51 +71,12 @@ export class LlmExtractorService implements OnModuleInit {
       });
 
       const content = response.choices[0]?.message?.content ?? '';
-      return this.parse(content);
+      return parseExtractionJson(content, 'llm');
     } catch (error) {
       this.logger.warn(
         `Extracción con LLM falló (${(error as Error).message}). Se usarán solo reglas.`,
       );
       return {};
     }
-  }
-
-  private parse(content: string): Partial<ExtractionResult> {
-    let json: Record<string, unknown>;
-    try {
-      json = JSON.parse(content) as Record<string, unknown>;
-    } catch {
-      return {};
-    }
-
-    const result: Partial<ExtractionResult> = {};
-
-    for (const [jsonKey, field] of JSON_TO_FIELD) {
-      const value = json[jsonKey];
-      if (value === null || value === undefined || value === '') {
-        continue;
-      }
-
-      if (field === 'category') {
-        if (typeof value !== 'string' && typeof value !== 'number') {
-          continue;
-        }
-        const normalized =
-          CATEGORY_KEYS[stripAccents(String(value).toLowerCase())];
-        if (!normalized) {
-          continue;
-        }
-        result[field] = { value: normalized, confidence: 0.9, source: 'llm' };
-        continue;
-      }
-
-      result[field] = {
-        value: value as string | number,
-        confidence: 0.9,
-        source: 'llm',
-      };
-    }
-
-    return result;
   }
 }

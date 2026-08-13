@@ -199,12 +199,13 @@ El resultado se guarda en el campo `rawText` del documento.
 
 ## Extracción de información
 
-Tras el OCR, el sistema extrae los campos estructurados (proveedor, número de factura, fecha, subtotal, impuestos, total, moneda y categoría) combinando dos estrategias:
+Tras el OCR, el sistema extrae los campos estructurados (proveedor, número de factura, fecha, subtotal, impuestos, total, moneda y categoría) combinando tres estrategias:
 
 1. **Reglas y expresiones regulares** (`RulesExtractorService`): siempre activas, deterministas y sin coste.
 2. **LLM opcional** (`LlmExtractorService`): se usa únicamente si se define `LLM_API_KEY`. Compatible con **OpenAI**, **DeepSeek** o cualquier proveedor con API estilo OpenAI (configurable con `LLM_BASE_URL` y `LLM_MODEL`).
+3. **Visión opcional** (`VisionExtractorService`): lee la **imagen directamente** con **Google Gemini** (`GEMINI_API_KEY` / `GEMINI_MODEL`). Recomendado para documentos **escritos a mano**, donde el OCR tradicional no lee bien la letra manuscrita (por ejemplo, la fecha de emisión).
 
-Ambos resultados se **fusionan** campo a campo. Si coinciden, la confianza es alta; si discrepan, el valor se marca con confianza baja. Cada campo recibe un **nivel de confianza (0-1)** que se guarda en el documento.
+Los resultados se **fusionan** campo a campo. Si coinciden, la confianza es alta; si discrepan, el valor se marca con confianza baja. Cada campo recibe un **nivel de confianza (0-1)** que se guarda en el documento.
 
 Un documento se marca como **`needs_review`** cuando falta un campo crítico (proveedor o total) o cuando algún campo tiene confianza baja, para que el usuario lo revise antes de darlo por bueno.
 

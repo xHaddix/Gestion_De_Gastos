@@ -1,6 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import {
   emptyField,
+  ExtractedField,
   ExtractionResult,
   FIELD_NAMES,
   FieldName,
@@ -8,9 +9,15 @@ import {
 import { normalizeDate } from '../utils/text.utils';
 import { LlmExtractorService } from './llm-extractor.service';
 import { RulesExtractorService } from './rules-extractor.service';
+import { VisionExtractorService } from './vision-extractor.service';
 
 const REVIEW_THRESHOLD = 0.7;
 const CRITICAL_FIELDS: FieldName[] = ['provider', 'total'];
+
+export interface ExtractionInput {
+  rawText: string;
+  image?: { buffer: Buffer; mimeType: string };
+}
 
 export interface ExtractionOutcome {
   result: ExtractionResult;
@@ -22,57 +29,67 @@ export class ExtractionService {
   constructor(
     private readonly rulesExtractor: RulesExtractorService,
     private readonly llmExtractor: LlmExtractorService,
+    private readonly visionExtractor: VisionExtractorService,
   ) {}
 
-  async extract(rawText: string): Promise<ExtractionOutcome> {
-    const rules = this.rulesExtractor.extract(rawText);
+  async extract(input: ExtractionInput): Promise<ExtractionOutcome> {
+    const rules = this.rulesExtractor.extract(input.rawText);
     const llm = this.llmExtractor.isEnabled()
-      ? await this.llmExtractor.extract(rawText)
+      ? await this.llmExtractor.extract(input.rawText)
       : {};
+    const vision =
+      this.visionExtractor.isEnabled() && input.image
+        ? await this.visionExtractor.extract(
+            input.image.buffer,
+            input.image.mimeType,
+          )
+        : {};
 
-    const result = this.merge(rules, llm);
+    const result = this.merge([rules, llm, vision]);
     const needsReview = this.computeNeedsReview(result);
 
     return { result, needsReview };
   }
 
-  private merge(
-    rules: ExtractionResult,
-    llm: Partial<ExtractionResult>,
-  ): ExtractionResult {
+  private merge(sources: Partial<ExtractionResult>[]): ExtractionResult {
     const result = {} as ExtractionResult;
 
     for (const field of FIELD_NAMES) {
-      const ruleField = rules[field];
-      const llmField = llm[field];
-      const ruleValue = ruleField?.value ?? null;
-      const llmValue = llmField?.value ?? null;
-      const ruleConfidence = ruleField?.confidence ?? 0;
-      const llmConfidence = llmField?.confidence ?? 0;
+      const fields = sources
+        .map((source) => source[field])
+        .filter(
+          (f): f is ExtractedField & { value: string | number } =>
+            f !== undefined && f.value !== null && f.value !== undefined,
+        );
 
-      if (ruleValue !== null && llmValue !== null) {
-        result[field] = this.sameValue(ruleValue, llmValue)
-          ? {
-              value: llmValue,
-              confidence: Math.max(0.95, ruleConfidence),
-              source: 'merged',
-            }
-          : {
-              value: ruleConfidence >= llmConfidence ? ruleValue : llmValue,
-              confidence: 0.4,
-              source: 'merged',
-            };
-      } else if (llmValue !== null) {
-        result[field] = { value: llmValue, confidence: 0.7, source: 'llm' };
-      } else if (ruleValue !== null) {
-        result[field] = {
-          value: ruleValue,
-          confidence: ruleConfidence,
-          source: ruleField.source,
-        };
-      } else {
+      if (fields.length === 0) {
         result[field] = emptyField();
+        continue;
       }
+
+      if (fields.length === 1) {
+        result[field] = { ...fields[0] };
+        continue;
+      }
+
+      const reference = fields[0];
+      const allAgree = fields.every((f) =>
+        this.sameValue(f.value, reference.value),
+      );
+
+      result[field] = allAgree
+        ? {
+            value: reference.value,
+            confidence: Math.max(0.95, ...fields.map((f) => f.confidence)),
+            source: 'merged',
+          }
+        : {
+            value: fields.reduce((best, f) =>
+              f.confidence >= best.confidence ? f : best,
+            ).value,
+            confidence: 0.4,
+            source: 'merged',
+          };
     }
 
     return result;

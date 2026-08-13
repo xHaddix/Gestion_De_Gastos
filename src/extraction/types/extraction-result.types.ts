@@ -1,6 +1,6 @@
 import { ExpenseCategory } from '../../documents/model/document.entity';
 
-export type FieldSource = 'rules' | 'llm' | 'merged' | 'none';
+export type FieldSource = 'rules' | 'llm' | 'vision' | 'merged' | 'none';
 
 export interface ExtractedField {
   value: string | number | null;

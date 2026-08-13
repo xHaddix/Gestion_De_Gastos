@@ -173,6 +173,15 @@ $ curl -X POST http://localhost:3000/api/auth/login \
 
 Los mensajes de error y las descripciones de Swagger están en **español** (p. ej. `Credenciales inválidas`, `Token inválido o expirado`).
 
+## OCR
+
+El OCR usa [Tesseract.js](https://tesseract.projectnaptha.com/) con los idiomas `spa+eng`. Los modelos de idioma se descargan automáticamente en el primer uso y quedan en caché local.
+
+- **Imágenes (JPG/PNG):** se procesan directamente con Tesseract.
+- **PDFs:** se convierten primero a imágenes con [pdf.js](https://mozilla.github.io/pdf.js/) + [@napi-rs/canvas](https://github.com/Brooooooklyn/canvas), y luego se aplica OCR a cada página.
+
+El resultado se guarda en el campo `rawText` del documento.
+
 ## Docker
 
 ### Desarrollo (hot reload)
@@ -230,6 +239,8 @@ prueba-tecnica/
 │   │   ├── model/                # Entidad Document (+ enums)
 │   │   ├── controller/           # DocumentsController
 │   │   └── services/             # DocumentsService
+│   ├── ocr/                      # Reconocimiento óptico de texto (Tesseract.js)
+│   │   └── ocr.service.ts        # OCR de imágenes y PDFs (pdf.js + canvas)
 │   ├── storage/                  # Almacenamiento S3-compatible (MinIO)
 │   │   └── storage.service.ts    # Subida, URL firmada y borrado de archivos
 │   ├── app.module.ts             # Módulo raíz (Config, TypeORM, Auth, Documents)

@@ -1,11 +1,16 @@
 # Prueba Técnica — Backend NestJS
 
-Backend moderno construido con [NestJS](https://nestjs.com/) y **PostgreSQL** que sirve como plantilla de referencia. Incluye autenticación con JWT, documentación de la API en **Swagger (en español)** y despliegue con **Docker Compose**.
+Backend moderno construido con [NestJS](https://nestjs.com/) y **PostgreSQL** para la gestión de documentos de gasto. Incluye carga de archivos en **MinIO (S3)**, **OCR** con Tesseract.js, **extracción de información** (reglas + LLM opcional) y documentación de la API en **Swagger (en español)**.
 
 ## Características
 
-- Autenticación con **JWT** (`register`, `login`, `profile`) y contraseñas cifradas con `bcryptjs`
-- Base de datos **PostgreSQL** con **TypeORM** (entidad `users`)
+- Carga de documentos **JPG/PNG/PDF** con almacenamiento en **MinIO** (S3-compatible)
+- **OCR** con [Tesseract.js](https://tesseract.projectnaptha.com/) (imágenes y PDFs)
+- **Extracción de campos** (proveedor, número, fecha, importes, moneda y categoría) con reglas + LLM opcional
+- **Niveles de confianza** por campo y marcado de documentos que requieren revisión humana
+- **Revisión humana**: corregir, completar y categorizar documentos (`PATCH`)
+- **Filtros** por rango de fechas y categoría
+- Base de datos **PostgreSQL** con **TypeORM** (entidad `documents`)
 - Configuración por variables de entorno (`.env`) con validación automática (`class-validator`)
 - Documentación de la API con **Swagger totalmente en español**, incluyendo la especificación **OpenAPI en YAML** (archivo `openapi.yaml` en la raíz)
 - Validación de entrada con DTOs (`class-validator` + `class-transformer`)
@@ -73,8 +78,12 @@ Todas las variables se validan al arrancar (la aplicación no inicia si falta al
 | `DB_USERNAME`        | Usuario de PostgreSQL              | `prueba`                 |
 | `DB_PASSWORD`        | Contraseña de PostgreSQL           | `prueba`                 |
 | `DB_DATABASE`        | Nombre de la base de datos         | `prueba_tecnica`         |
-| `JWT_SECRET`         | Secreto para firmar los JWT        | *(cambiar en producción)* |
-| `JWT_EXPIRES_IN`     | Expiración del token               | `1h`                     |
+| `S3_ENDPOINT`        | Endpoint S3-compatible (MinIO)     | `http://localhost:9000`  |
+| `S3_PUBLIC_ENDPOINT` | Endpoint público para las URLs de descarga | `http://localhost:9000` |
+| `S3_REGION`          | Región del bucket                  | `us-east-1`              |
+| `S3_ACCESS_KEY`      | Clave de acceso S3                 | `minioadmin`             |
+| `S3_SECRET_KEY`      | Clave secreta S3                   | `minioadmin`             |
+| `S3_BUCKET`          | Bucket donde se guardan los archivos | `documentos`           |
 
 ## Ejecución
 
@@ -107,8 +116,6 @@ Una vez la API esté corriendo, tienes disponibles:
 - **Especificación OpenAPI en JSON:** `http://localhost:3000/docs-json`
 - **Especificación OpenAPI en YAML:** `http://localhost:3000/docs-yaml`
 
-La interfaz incluye un botón `Authorize` para pegar el token JWT y probar los endpoints protegidos.
-
 ### Archivo `openapi.yaml`
 
 En la raíz del repositorio se incluye el archivo **`openapi.yaml`** con la especificación completa de la API. Puedes:
@@ -129,35 +136,59 @@ Esto actualiza el archivo `openapi.yaml` en la raíz del proyecto.
 
 ## Endpoints
 
-### Autenticación
-
-| Método | Ruta                | Descripción                                    | Auth     |
-| ------ | ------------------- | ---------------------------------------------- | -------- |
-| POST   | `/api/auth/register`| Crea un usuario (contraseña cifrada)           | No       |
-| POST   | `/api/auth/login`   | Valida credenciales y devuelve `accessToken`   | No       |
-| GET    | `/api/auth/profile` | Devuelve el usuario autenticado                | Bearer   |
-
 ### Otros
 
 | Método | Ruta   | Descripción               |
 | ------ | ------ | ------------------------- |
 | GET    | `/api` | Mensaje de bienvenida     |
 
+### Documentos
+
+| Método | Ruta               | Descripción                                    |
+| ------ | ------------------ | ---------------------------------------------- |
+| POST   | `/api/documents`   | Sube un documento (JPG/PNG/PDF) a MinIO        |
+| GET    | `/api/documents`   | Lista documentos (filtros `from`, `to`, `category`) |
+| GET    | `/api/documents/:id` | Consulta un documento (incluye URL firmada)  |
+| PATCH  | `/api/documents/:id` | Corrige campos y marca el documento como revisado |
+| DELETE | `/api/documents/:id` | Elimina el documento y su archivo            |
+
 ### Ejemplo de uso con `curl`
 
 ```bash
-# 1. Registrarse
-$ curl -X POST http://localhost:3000/api/auth/register \
-  -H "Content-Type: application/json" \
-  -d '{"email":"usuario@example.com","password":"Contraseña123!"}'
+# Subir un documento (JPG/PNG/PDF)
+$ curl -X POST http://localhost:3000/api/documents \
+  -F "file=@factura.jpg"
 
-# 2. Iniciar sesión y obtener el token
-$ curl -X POST http://localhost:3000/api/auth/login \
+# Listar documentos filtrados por categoría
+$ curl "http://localhost:3000/api/documents?category=alimentacion"
+
+# Corregir campos de un documento
+$ curl -X PATCH http://localhost:3000/api/documents/<id> \
   -H "Content-Type: application/json" \
-  -d '{"email":"usuario@example.com","password":"Contraseña123!"}'
+  -d '{"provider":"ACME S.A.","category":"servicios","total":120.50}'
 ```
 
-Los mensajes de error y las descripciones de Swagger están en **español** (p. ej. `Credenciales inválidas`, `Token inválido o expirado`).
+Los mensajes de error y las descripciones de Swagger están en **español**.
+
+## OCR
+
+El OCR usa [Tesseract.js](https://tesseract.projectnaptha.com/) con los idiomas `spa+eng`. Los modelos de idioma se descargan automáticamente en el primer uso y quedan en caché local.
+
+- **Imágenes (JPG/PNG):** se procesan directamente con Tesseract.
+- **PDFs:** se convierten primero a imágenes con [pdf.js](https://mozilla.github.io/pdf.js/) + [@napi-rs/canvas](https://github.com/Brooooooklyn/canvas), y luego se aplica OCR a cada página.
+
+El resultado se guarda en el campo `rawText` del documento.
+
+## Extracción de información
+
+Tras el OCR, el sistema extrae los campos estructurados (proveedor, número de factura, fecha, subtotal, impuestos, total, moneda y categoría) combinando dos estrategias:
+
+1. **Reglas y expresiones regulares** (`RulesExtractorService`): siempre activas, deterministas y sin coste.
+2. **LLM opcional** (`LlmExtractorService`): se usa únicamente si se define `LLM_API_KEY`. Compatible con **OpenAI**, **DeepSeek** o cualquier proveedor con API estilo OpenAI (configurable con `LLM_BASE_URL` y `LLM_MODEL`).
+
+Ambos resultados se **fusionan** campo a campo. Si coinciden, la confianza es alta; si discrepan, el valor se marca con confianza baja. Cada campo recibe un **nivel de confianza (0-1)** que se guarda en el documento.
+
+Un documento se marca como **`needs_review`** cuando falta un campo crítico (proveedor o total) o cuando algún campo tiene confianza baja, para que el usuario lo revise antes de darlo por bueno.
 
 ## Docker
 
@@ -167,7 +198,14 @@ Los mensajes de error y las descripciones de Swagger están en **español** (p. 
 $ docker compose up
 ```
 
-Levanta tres servicios: `postgres` (PostgreSQL 16), `api` (NestJS en modo watch) y `pgweb` (cliente web para la base de datos).
+Levanta tres servicios: `postgres` (PostgreSQL 16), `api` (NestJS en modo watch) y `pgweb` (cliente web para la base de datos), además de `minio` (almacenamiento de archivos S3-compatible).
+
+> **Nota:** si añades o actualizas dependencias y obtienes errores de módulos no encontrados (`Cannot find module '...'`), borra los volúmenes antes de reconstruir para no reutilizar `node_modules` desactualizados:
+>
+> ```bash
+> $ docker compose down -v
+> $ docker compose up --build
+> ```
 
 ### Base de datos (pgweb)
 
@@ -204,15 +242,25 @@ prueba-tecnica/
 ├── openapi.yaml                 # Especificación OpenAPI de la API (español)
 ├── src/
 │   ├── common/
-│   │   └── config/
-│   │       └── env.validation.ts # Validación de variables de entorno
-│   ├── auth/                     # Autenticación (JWT + PostgreSQL)
-│   │   ├── model/                # Entidad User y tipos del JWT
-│   │   ├── services/             # AuthService, JwtAuthGuard (+ tests)
-│   │   ├── controller/           # AuthController
-│   │   ├── dto/                  # RegisterDto y LoginDto
-│   │   └── interceptors/         # SanitizeUserInterceptor (quita el password)
-│   ├── app.module.ts             # Módulo raíz (Config, TypeORM, Auth)
+│   │   ├── config/
+│   │   │   └── env.validation.ts # Validación de variables de entorno
+│   │   └── db/
+│   │       └── numeric.transformer.ts # Conversión numeric <-> number
+│   ├── documents/                # Gestión de documentos de gasto
+│   │   ├── model/                # Entidad Document (+ enums)
+│   │   ├── services/             # DocumentsService
+│   │   ├── controller/           # DocumentsController
+│   │   ├── dto/                  # UpdateDocumentDto, QueryDocumentsDto
+│   │   └── interceptor/          # DocumentSummaryInterceptor (lista resumida)
+│   ├── ocr/                      # Reconocimiento óptico de texto (Tesseract.js)
+│   │   └── services/             # OcrService (imágenes y PDFs)
+│   ├── extraction/               # Extracción de campos (reglas + LLM opcional)
+│   │   ├── services/             # RulesExtractor, LlmExtractor, Extraction (+ tests)
+│   │   ├── types/                # Tipos del resultado de extracción
+│   │   └── utils/                # Parseo de importes y fechas
+│   ├── storage/                  # Almacenamiento S3-compatible (MinIO)
+│   │   └── services/             # StorageService (subida, URL firmada, borrado)
+│   ├── app.module.ts             # Módulo raíz (Config, TypeORM, Documents)
 │   └── main.ts                   # Bootstrap: prefijo, pipes, helmet, Swagger
 └── test/
     └── app.e2e-spec.ts           # Tests e2e

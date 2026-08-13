@@ -4,6 +4,7 @@ import {
   IsEnum,
   IsInt,
   IsNotEmpty,
+  IsOptional,
   IsString,
   Min,
   validateSync,
@@ -63,11 +64,39 @@ class EnvironmentVariables {
 
   @IsString()
   @IsNotEmpty()
-  JWT_SECRET!: string;
+  S3_ENDPOINT!: string;
+
+  @IsOptional()
+  @IsString()
+  S3_PUBLIC_ENDPOINT?: string;
 
   @IsString()
   @IsNotEmpty()
-  JWT_EXPIRES_IN!: string;
+  S3_REGION!: string;
+
+  @IsString()
+  @IsNotEmpty()
+  S3_ACCESS_KEY!: string;
+
+  @IsString()
+  @IsNotEmpty()
+  S3_SECRET_KEY!: string;
+
+  @IsString()
+  @IsNotEmpty()
+  S3_BUCKET!: string;
+
+  @IsOptional()
+  @IsString()
+  LLM_API_KEY?: string;
+
+  @IsOptional()
+  @IsString()
+  LLM_BASE_URL?: string;
+
+  @IsOptional()
+  @IsString()
+  LLM_MODEL?: string;
 }
 
 export function validate(config: Record<string, unknown>) {

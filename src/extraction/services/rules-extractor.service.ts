@@ -33,8 +33,11 @@ const INVOICE_PATTERNS = [
 ];
 
 const DATE_PATTERNS = [
-  /(?:fecha|date)\s*[:#]?\s*(\d{1,2}[/-]\d{1,2}[/-]\d{2,4})/i,
+  /(?:fecha|date)\s*[:#]?\s*(\d{4}[/.-]\d{1,2}[/.-]\d{1,2}|\d{1,2}[/.-]\d{1,2}[/.-]\d{2,4})/i,
 ];
+
+const DATE_NOISE_PATTERN =
+  /(dian|resoluci|formulario|vigencia|autoriza|regimen|expedicion)/i;
 
 const CURRENCY_CODES = /(?:EUR|USD|MXN|COP|ARS|CLP|PEN|GBP|CHF|BRL|CAD|AUD)\b/i;
 
@@ -276,31 +279,36 @@ export class RulesExtractorService {
   }
 
   private extractDate(text: string): ExtractedField {
-    for (const pattern of DATE_PATTERNS) {
-      const match = text.match(pattern);
-      if (match) {
-        const normalized = normalizeDate(match[1]);
-        if (normalized) {
-          return {
-            value: normalized,
-            confidence: 0.85,
-            source: 'rules',
-          };
+    const lines = text.split(/\r?\n/);
+
+    for (const line of lines) {
+      if (DATE_NOISE_PATTERN.test(line)) {
+        continue;
+      }
+      for (const pattern of DATE_PATTERNS) {
+        const match = line.match(pattern);
+        if (match) {
+          const normalized = normalizeDate(match[1]);
+          if (normalized) {
+            return { value: normalized, confidence: 0.85, source: 'rules' };
+          }
         }
       }
     }
 
-    const generic = text.match(/\b(\d{1,2}[/.-]\d{1,2}[/.-]\d{2,4})\b/);
-    if (generic) {
-      const normalized = normalizeDate(generic[1]);
-      if (normalized) {
-        return { value: normalized, confidence: 0.5, source: 'rules' };
+    for (const line of lines) {
+      if (DATE_NOISE_PATTERN.test(line)) {
+        continue;
       }
-    }
-
-    const iso = text.match(/\b(\d{4}[-/.]\d{2}[-/.]\d{2})\b/);
-    if (iso) {
-      return { value: iso[1], confidence: 0.85, source: 'rules' };
+      const generic = line.match(
+        /\b(\d{4}[/.-]\d{1,2}[/.-]\d{1,2}|\d{1,2}[/.-]\d{1,2}[/.-]\d{2,4})\b/,
+      );
+      if (generic) {
+        const normalized = normalizeDate(generic[1]);
+        if (normalized) {
+          return { value: normalized, confidence: 0.5, source: 'rules' };
+        }
+      }
     }
 
     return emptyField();

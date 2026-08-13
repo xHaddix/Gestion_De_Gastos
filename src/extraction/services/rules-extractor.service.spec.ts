@@ -70,6 +70,19 @@ describe('RulesExtractorService', () => {
     expect(result.category.value).toBe(ExpenseCategory.Tecnologia);
   });
 
+  it('ignora la fecha de la resolución DIAN y usa la fecha de la factura', () => {
+    const result = service.extract(
+      [
+        'FORMULARIO DIAN No. 1876201184101 - FECHA: 2018/11/08',
+        'FACTURA DE VENTA',
+        'FECHA: 15/08/2026',
+        'Total: 100.00',
+      ].join('\n'),
+    );
+
+    expect(result.issueDate.value).toBe('2026-08-15');
+  });
+
   it('devuelve campos nulos cuando no hay información', () => {
     const result = service.extract('Texto sin datos relevantes');
 

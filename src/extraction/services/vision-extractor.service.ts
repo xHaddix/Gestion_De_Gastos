@@ -32,7 +32,7 @@ export class VisionExtractorService implements OnModuleInit {
     const apiKey = this.configService.get<string>('GEMINI_API_KEY');
     const modelName = this.configService.get<string>(
       'GEMINI_MODEL',
-      'gemini-2.0-flash',
+      'gemini-2.5-flash',
     );
 
     this.model = apiKey

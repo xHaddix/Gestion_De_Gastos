@@ -9,71 +9,6 @@ paths:
           description: ''
       tags:
         - App
-  /api/auth/register:
-    post:
-      operationId: AuthController_register
-      parameters: []
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/RegisterDto'
-      responses:
-        '201':
-          description: Usuario creado correctamente
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/User'
-        '409':
-          description: El correo electrónico ya está registrado
-      summary: Registrar un nuevo usuario
-      tags: &ref_0
-        - Autenticación
-  /api/auth/login:
-    post:
-      operationId: AuthController_login
-      parameters: []
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/LoginDto'
-      responses:
-        '200':
-          description: Inicio de sesión correcto
-          content:
-            application/json:
-              schema:
-                properties:
-                  accessToken:
-                    type: string
-                    description: Token de acceso JWT
-                  user:
-                    $ref: '#/components/schemas/User'
-        '401':
-          description: Credenciales inválidas
-      summary: Iniciar sesión y obtener un token de acceso JWT
-      tags: *ref_0
-  /api/auth/profile:
-    get:
-      operationId: AuthController_profile
-      parameters: []
-      responses:
-        '200':
-          description: Usuario autenticado
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/User'
-        '401':
-          description: Token de autenticación faltante, inválido o expirado
-      security:
-        - bearer: []
-      summary: Obtener el perfil del usuario autenticado
-      tags: *ref_0
   /api/documents:
     post:
       operationId: DocumentsController_upload
@@ -96,7 +31,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/Document'
       summary: Subir un documento de gasto (JPG, PNG o PDF)
-      tags: &ref_1
+      tags: &ref_0
         - Documentos
     get:
       operationId: DocumentsController_findAll
@@ -137,7 +72,7 @@ paths:
                 items:
                   $ref: '#/components/schemas/Document'
       summary: Listar documentos (filtrable por rango de fechas y categoría)
-      tags: *ref_1
+      tags: *ref_0
   /api/documents/{id}:
     get:
       operationId: DocumentsController_findOne
@@ -157,7 +92,7 @@ paths:
         '404':
           description: Documento no encontrado
       summary: Consultar un documento por su id
-      tags: *ref_1
+      tags: *ref_0
     patch:
       operationId: DocumentsController_update
       parameters:
@@ -182,7 +117,7 @@ paths:
         '404':
           description: Documento no encontrado
       summary: Corregir o completar los campos de un documento (revisión humana)
-      tags: *ref_1
+      tags: *ref_0
     delete:
       operationId: DocumentsController_remove
       parameters:
@@ -197,7 +132,7 @@ paths:
         '404':
           description: Documento no encontrado
       summary: Eliminar un documento y su archivo asociado
-      tags: *ref_1
+      tags: *ref_0
 info:
   title: API de Prueba Técnica
   description: Documentación de la API en español
@@ -206,76 +141,7 @@ info:
 tags: []
 servers: []
 components:
-  securitySchemes:
-    bearer:
-      scheme: bearer
-      bearerFormat: JWT
-      type: http
   schemas:
-    RegisterDto:
-      type: object
-      properties:
-        email:
-          type: string
-          example: usuario@example.com
-          description: Correo electrónico del usuario
-        name:
-          type: string
-          example: Juan Pérez
-          description: Nombre del usuario
-          nullable: true
-        password:
-          type: string
-          example: Contraseña123!
-          description: Contraseña del usuario (mínimo 8 caracteres)
-      required:
-        - email
-        - password
-    User:
-      type: object
-      properties:
-        id:
-          type: number
-          example: 1
-          description: Identificador único del usuario
-        email:
-          type: string
-          example: usuario@example.com
-          description: Correo electrónico del usuario
-        name:
-          type: string
-          example: Juan Pérez
-          nullable: true
-          description: Nombre del usuario
-        createdAt:
-          format: date-time
-          type: string
-          example: '2026-08-12T10:00:00.000Z'
-          description: Fecha y hora de creación del usuario
-        updatedAt:
-          format: date-time
-          type: string
-          example: '2026-08-12T10:00:00.000Z'
-          description: Fecha y hora de la última actualización
-      required:
-        - id
-        - email
-        - createdAt
-        - updatedAt
-    LoginDto:
-      type: object
-      properties:
-        email:
-          type: string
-          example: usuario@example.com
-          description: Correo electrónico del usuario
-        password:
-          type: string
-          example: Contraseña123!
-          description: Contraseña del usuario
-      required:
-        - email
-        - password
     Document:
       type: object
       properties:

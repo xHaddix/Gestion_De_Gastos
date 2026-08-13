@@ -40,7 +40,6 @@ async function bootstrap() {
         ),
       )
       .setVersion(configService.get<string>('SWAGGER_VERSION', '1.0.0'))
-      .addBearerAuth()
       .build();
 
     const document = SwaggerModule.createDocument(app, swaggerConfig);

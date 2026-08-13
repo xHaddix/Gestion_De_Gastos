@@ -1,11 +1,16 @@
 # Prueba Técnica — Backend NestJS
 
-Backend moderno construido con [NestJS](https://nestjs.com/) y **PostgreSQL** que sirve como plantilla de referencia. Incluye autenticación con JWT, documentación de la API en **Swagger (en español)** y despliegue con **Docker Compose**.
+Backend moderno construido con [NestJS](https://nestjs.com/) y **PostgreSQL** para la gestión de documentos de gasto. Incluye carga de archivos en **MinIO (S3)**, **OCR** con Tesseract.js, **extracción de información** (reglas + LLM opcional) y documentación de la API en **Swagger (en español)**.
 
 ## Características
 
-- Autenticación con **JWT** (`register`, `login`, `profile`) y contraseñas cifradas con `bcryptjs`
-- Base de datos **PostgreSQL** con **TypeORM** (entidad `users`)
+- Carga de documentos **JPG/PNG/PDF** con almacenamiento en **MinIO** (S3-compatible)
+- **OCR** con [Tesseract.js](https://tesseract.projectnaptha.com/) (imágenes y PDFs)
+- **Extracción de campos** (proveedor, número, fecha, importes, moneda y categoría) con reglas + LLM opcional
+- **Niveles de confianza** por campo y marcado de documentos que requieren revisión humana
+- **Revisión humana**: corregir, completar y categorizar documentos (`PATCH`)
+- **Filtros** por rango de fechas y categoría
+- Base de datos **PostgreSQL** con **TypeORM** (entidad `documents`)
 - Configuración por variables de entorno (`.env`) con validación automática (`class-validator`)
 - Documentación de la API con **Swagger totalmente en español**, incluyendo la especificación **OpenAPI en YAML** (archivo `openapi.yaml` en la raíz)
 - Validación de entrada con DTOs (`class-validator` + `class-transformer`)
@@ -73,8 +78,6 @@ Todas las variables se validan al arrancar (la aplicación no inicia si falta al
 | `DB_USERNAME`        | Usuario de PostgreSQL              | `prueba`                 |
 | `DB_PASSWORD`        | Contraseña de PostgreSQL           | `prueba`                 |
 | `DB_DATABASE`        | Nombre de la base de datos         | `prueba_tecnica`         |
-| `JWT_SECRET`         | Secreto para firmar los JWT        | *(cambiar en producción)* |
-| `JWT_EXPIRES_IN`     | Expiración del token               | `1h`                     |
 | `S3_ENDPOINT`        | Endpoint S3-compatible (MinIO)     | `http://localhost:9000`  |
 | `S3_REGION`          | Región del bucket                  | `us-east-1`              |
 | `S3_ACCESS_KEY`      | Clave de acceso S3                 | `minioadmin`             |
@@ -112,8 +115,6 @@ Una vez la API esté corriendo, tienes disponibles:
 - **Especificación OpenAPI en JSON:** `http://localhost:3000/docs-json`
 - **Especificación OpenAPI en YAML:** `http://localhost:3000/docs-yaml`
 
-La interfaz incluye un botón `Authorize` para pegar el token JWT y probar los endpoints protegidos.
-
 ### Archivo `openapi.yaml`
 
 En la raíz del repositorio se incluye el archivo **`openapi.yaml`** con la especificación completa de la API. Puedes:
@@ -134,14 +135,6 @@ Esto actualiza el archivo `openapi.yaml` en la raíz del proyecto.
 
 ## Endpoints
 
-### Autenticación
-
-| Método | Ruta                | Descripción                                    | Auth     |
-| ------ | ------------------- | ---------------------------------------------- | -------- |
-| POST   | `/api/auth/register`| Crea un usuario (contraseña cifrada)           | No       |
-| POST   | `/api/auth/login`   | Valida credenciales y devuelve `accessToken`   | No       |
-| GET    | `/api/auth/profile` | Devuelve el usuario autenticado                | Bearer   |
-
 ### Otros
 
 | Método | Ruta   | Descripción               |
@@ -161,18 +154,20 @@ Esto actualiza el archivo `openapi.yaml` en la raíz del proyecto.
 ### Ejemplo de uso con `curl`
 
 ```bash
-# 1. Registrarse
-$ curl -X POST http://localhost:3000/api/auth/register \
-  -H "Content-Type: application/json" \
-  -d '{"email":"usuario@example.com","password":"Contraseña123!"}'
+# Subir un documento (JPG/PNG/PDF)
+$ curl -X POST http://localhost:3000/api/documents \
+  -F "file=@factura.jpg"
 
-# 2. Iniciar sesión y obtener el token
-$ curl -X POST http://localhost:3000/api/auth/login \
+# Listar documentos filtrados por categoría
+$ curl "http://localhost:3000/api/documents?category=alimentacion"
+
+# Corregir campos de un documento
+$ curl -X PATCH http://localhost:3000/api/documents/<id> \
   -H "Content-Type: application/json" \
-  -d '{"email":"usuario@example.com","password":"Contraseña123!"}'
+  -d '{"provider":"ACME S.A.","category":"servicios","total":120.50}'
 ```
 
-Los mensajes de error y las descripciones de Swagger están en **español** (p. ej. `Credenciales inválidas`, `Token inválido o expirado`).
+Los mensajes de error y las descripciones de Swagger están en **español**.
 
 ## OCR
 
@@ -250,13 +245,6 @@ prueba-tecnica/
 │   │   │   └── env.validation.ts # Validación de variables de entorno
 │   │   └── db/
 │   │       └── numeric.transformer.ts # Conversión numeric <-> number
-│   ├── auth/                     # Autenticación (JWT + PostgreSQL)
-│   │   ├── model/                # Entidad User y tipos del JWT
-│   │   ├── services/             # AuthService, JwtAuthGuard (+ tests)
-│   │   ├── controller/           # AuthController
-│   │   ├── dto/                  # RegisterDto y LoginDto
-│   │   ├── interceptor/          # SanitizeUserInterceptor (quita el password)
-│   │   └── decorator/            # @CurrentUser (usuario autenticado)
 │   ├── documents/                # Gestión de documentos de gasto
 │   │   ├── model/                # Entidad Document (+ enums)
 │   │   ├── services/             # DocumentsService
@@ -271,7 +259,7 @@ prueba-tecnica/
 │   │   └── utils/                # Parseo de importes y fechas
 │   ├── storage/                  # Almacenamiento S3-compatible (MinIO)
 │   │   └── services/             # StorageService (subida, URL firmada, borrado)
-│   ├── app.module.ts             # Módulo raíz (Config, TypeORM, Auth, Documents)
+│   ├── app.module.ts             # Módulo raíz (Config, TypeORM, Documents)
 │   └── main.ts                   # Bootstrap: prefijo, pipes, helmet, Swagger
 └── test/
     └── app.e2e-spec.ts           # Tests e2e

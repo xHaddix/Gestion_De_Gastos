@@ -1,6 +1,6 @@
-# Prueba Técnica — Backend NestJS
+# Prueba Técnica — Gestión de Gastos
 
-Backend moderno construido con [NestJS](https://nestjs.com/) y **PostgreSQL** para la gestión de documentos de gasto. Incluye carga de archivos en **MinIO (S3)**, **OCR** con Tesseract.js, **extracción de información** (reglas + LLM opcional) y documentación de la API en **Swagger (en español)**.
+Aplicación full-stack para la gestión de documentos de gasto. **Backend** con [NestJS](https://nestjs.com/) + **PostgreSQL** (carga de archivos en **MinIO/S3**, **OCR** con Tesseract.js, **extracción de información** con reglas + LLM opcional) y **frontend** con [React](https://react.dev/) + [Vite](https://vitejs.dev/).
 
 ## Características
 
@@ -15,9 +15,14 @@ Backend moderno construido con [NestJS](https://nestjs.com/) y **PostgreSQL** pa
 - Documentación de la API con **Swagger totalmente en español**, incluyendo la especificación **OpenAPI en YAML** (archivo `openapi.yaml` en la raíz)
 - Validación de entrada con DTOs (`class-validator` + `class-transformer`)
 - Seguridad básica: `helmet`, CORS y `ValidationPipe` (whitelist)
-- **Docker Compose** para PostgreSQL + API (desarrollo y producción)
+- **Docker Compose** para PostgreSQL + API + Frontend (desarrollo y producción)
 - Tests unitarios (Jest) y e2e (Jest + supertest)
 - Linting con **ESLint 9** (flat config) + **Prettier**
+
+### Frontend (React + Vite)
+
+- Interfaz en **React** con menú lateral (hamburguesa), filtros, carga de documentos con arrastrar y soltar, revisión/edición y modales.
+- Consume la API a través de un proxy (`/api`) en desarrollo (Vite) y producción (nginx).
 
 ## Stack y versiones
 
@@ -51,13 +56,15 @@ $ npm install
 $ cp .env.example .env
 ```
 
-3. Levantar la base de datos y la API:
+3. Levantar la base de datos, la API y el frontend:
 
 ```bash
 $ docker compose up
 ```
 
-La API quedará disponible en `http://localhost:3000/api` y la documentación en `http://localhost:3000/docs`.
+- **Frontend:** `http://localhost:5173`
+- **API:** `http://localhost:3000/api`
+- **Documentación (Swagger):** `http://localhost:3000/docs`
 
 ## Variables de entorno
 
@@ -84,6 +91,11 @@ Todas las variables se validan al arrancar (la aplicación no inicia si falta al
 | `S3_ACCESS_KEY`      | Clave de acceso S3                 | `minioadmin`             |
 | `S3_SECRET_KEY`      | Clave secreta S3                   | `minioadmin`             |
 | `S3_BUCKET`          | Bucket donde se guardan los archivos | `documentos`           |
+| `LLM_API_KEY`        | Clave para extracción por texto (OpenAI/DeepSeek) | *(vacío)* |
+| `LLM_BASE_URL`       | Base URL del proveedor de LLM       | `https://api.deepseek.com` |
+| `LLM_MODEL`          | Modelo de LLM de texto              | `deepseek-chat`          |
+| `GEMINI_API_KEY`     | Clave para extracción por visión (Gemini) | *(vacío)*          |
+| `GEMINI_MODEL`       | Modelo de visión de Gemini          | `gemini-flash-latest`    |
 
 ## Ejecución
 
@@ -134,6 +146,24 @@ $ npm run swagger:generate
 
 Esto actualiza el archivo `openapi.yaml` en la raíz del proyecto.
 
+## Formato de respuesta
+
+Todas las respuestas exitosas de la API van envueltas en un objeto uniforme:
+
+```json
+{
+  "success": true,
+  "message": "Mensaje descriptivo",
+  "data": { }
+}
+```
+
+- `success`: siempre `true` en respuestas exitosas.
+- `message`: mensaje descriptivo (p. ej. `"Se encontraron 2 resultado(s)"`, `"No se encontraron resultados"`, `"Documento eliminado correctamente"`).
+- `data`: el contenido real de la respuesta (el documento, la lista, etc.).
+
+Los errores siguen el formato estándar de NestJS (`{ statusCode, message, error }`).
+
 ## Endpoints
 
 ### Otros
@@ -181,12 +211,13 @@ El resultado se guarda en el campo `rawText` del documento.
 
 ## Extracción de información
 
-Tras el OCR, el sistema extrae los campos estructurados (proveedor, número de factura, fecha, subtotal, impuestos, total, moneda y categoría) combinando dos estrategias:
+Tras el OCR, el sistema extrae los campos estructurados (proveedor, número de factura, fecha, subtotal, impuestos, total, moneda y categoría) combinando tres estrategias:
 
 1. **Reglas y expresiones regulares** (`RulesExtractorService`): siempre activas, deterministas y sin coste.
 2. **LLM opcional** (`LlmExtractorService`): se usa únicamente si se define `LLM_API_KEY`. Compatible con **OpenAI**, **DeepSeek** o cualquier proveedor con API estilo OpenAI (configurable con `LLM_BASE_URL` y `LLM_MODEL`).
+3. **Visión opcional** (`VisionExtractorService`): lee la **imagen directamente** con **Google Gemini** (`GEMINI_API_KEY` / `GEMINI_MODEL`). Recomendado para documentos **escritos a mano**, donde el OCR tradicional no lee bien la letra manuscrita (por ejemplo, la fecha de emisión).
 
-Ambos resultados se **fusionan** campo a campo. Si coinciden, la confianza es alta; si discrepan, el valor se marca con confianza baja. Cada campo recibe un **nivel de confianza (0-1)** que se guarda en el documento.
+Los resultados se **fusionan** campo a campo. Si coinciden, la confianza es alta; si discrepan, el valor se marca con confianza baja. Cada campo recibe un **nivel de confianza (0-1)** que se guarda en el documento.
 
 Un documento se marca como **`needs_review`** cuando falta un campo crítico (proveedor o total) o cuando algún campo tiene confianza baja, para que el usuario lo revise antes de darlo por bueno.
 
@@ -262,6 +293,18 @@ prueba-tecnica/
 │   │   └── services/             # StorageService (subida, URL firmada, borrado)
 │   ├── app.module.ts             # Módulo raíz (Config, TypeORM, Documents)
 │   └── main.ts                   # Bootstrap: prefijo, pipes, helmet, Swagger
+├── frontend/                     # Frontend React + Vite + TypeScript
+│   ├── src/
+│   │   ├── api/                  # Cliente HTTP (fetch)
+│   │   ├── components/           # Sidebar, Modal, Toast
+│   │   ├── pages/                # DocumentsPage, UploadPage, ReviewPage
+│   │   ├── types/                # Tipos TypeScript
+│   │   ├── constants.ts          # Categorías y etiquetas
+│   │   ├── index.css             # Estilos y animaciones
+│   │   ├── App.tsx               # Layout (sidebar + rutas)
+│   │   └── main.tsx              # Punto de entrada
+│   ├── Dockerfile                # Build + nginx
+│   └── nginx.conf                # Sirve la SPA y proxy /api → backend
 └── test/
     └── app.e2e-spec.ts           # Tests e2e
 ```

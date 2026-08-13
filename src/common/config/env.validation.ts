@@ -97,6 +97,14 @@ class EnvironmentVariables {
   @IsOptional()
   @IsString()
   LLM_MODEL?: string;
+
+  @IsOptional()
+  @IsString()
+  GEMINI_API_KEY?: string;
+
+  @IsOptional()
+  @IsString()
+  GEMINI_MODEL?: string;
 }
 
 export function validate(config: Record<string, unknown>) {

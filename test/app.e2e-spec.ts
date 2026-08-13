@@ -1,8 +1,16 @@
 import { INestApplication, ValidationPipe } from '@nestjs/common';
+import { Reflector } from '@nestjs/core';
 import { Test, TestingModule } from '@nestjs/testing';
 import request from 'supertest';
 import { App } from 'supertest/types';
 import { AppModule } from './../src/app.module';
+import { TransformInterceptor } from './../src/common/interceptor/transform.interceptor';
+
+interface Envelope<T> {
+  success: boolean;
+  message: string;
+  data: T;
+}
 
 describe('AppController (e2e)', () => {
   let app: INestApplication<App>;
@@ -22,6 +30,9 @@ describe('AppController (e2e)', () => {
         transformOptions: { enableImplicitConversion: true },
       }),
     );
+    app.useGlobalInterceptors(
+      new TransformInterceptor(moduleFixture.get(Reflector)),
+    );
     await app.init();
   });
 
@@ -29,18 +40,21 @@ describe('AppController (e2e)', () => {
     await app.close();
   });
 
-  it('/api (GET)', () => {
-    return request(app.getHttpServer())
-      .get('/api')
-      .expect(200)
-      .expect('¡Bienvenido a la API de Prueba Técnica!');
+  it('/api (GET)', async () => {
+    const res = await request(app.getHttpServer()).get('/api').expect(200);
+
+    const body = res.body as Envelope<string>;
+    expect(body.success).toBe(true);
+    expect(body.data).toBe('¡Bienvenido a la API de Prueba Técnica!');
   });
 
-  it('/api/documents (GET) devuelve una lista', async () => {
+  it('/api/documents (GET) devuelve una lista envuelta', async () => {
     const res = await request(app.getHttpServer())
       .get('/api/documents')
       .expect(200);
 
-    expect(Array.isArray(res.body)).toBe(true);
+    const body = res.body as Envelope<unknown[]>;
+    expect(body.success).toBe(true);
+    expect(Array.isArray(body.data)).toBe(true);
   });
 });

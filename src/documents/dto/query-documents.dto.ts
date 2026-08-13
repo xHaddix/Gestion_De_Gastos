@@ -1,5 +1,5 @@
 import { ApiPropertyOptional } from '@nestjs/swagger';
-import { IsDateString, IsEnum, IsOptional } from 'class-validator';
+import { IsBoolean, IsDateString, IsEnum, IsOptional } from 'class-validator';
 import { ExpenseCategory } from '../model/document.entity';
 
 export class QueryDocumentsDto {
@@ -26,4 +26,13 @@ export class QueryDocumentsDto {
   @IsOptional()
   @IsEnum(ExpenseCategory)
   category?: ExpenseCategory;
+
+  @ApiPropertyOptional({
+    example: true,
+    description:
+      'Filtrar documentos que requieren revisión (campos incompletos o de baja confianza)',
+  })
+  @IsOptional()
+  @IsBoolean()
+  needsReview?: boolean;
 }

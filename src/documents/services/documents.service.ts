@@ -49,14 +49,11 @@ export class DocumentsService {
       );
       saved.rawText = rawText;
 
-      if (rawText) {
-        const { result, needsReview } =
-          await this.extractionService.extract(rawText);
-        this.applyExtraction(saved, result, needsReview);
-      } else {
-        saved.status = DocumentStatus.NeedsReview;
-        saved.needsReview = true;
-      }
+      const { result, needsReview } = await this.extractionService.extract({
+        rawText: rawText ?? '',
+        image: { buffer: file.buffer, mimeType: file.mimetype },
+      });
+      this.applyExtraction(saved, result, needsReview);
     } catch {
       saved.status = DocumentStatus.Failed;
       saved.errorMessage = 'No se pudo procesar el documento mediante OCR';
@@ -79,6 +76,11 @@ export class DocumentsService {
     if (query.category) {
       builder.andWhere('document.category = :category', {
         category: query.category,
+      });
+    }
+    if (query.needsReview !== undefined) {
+      builder.andWhere('document.needsReview = :needsReview', {
+        needsReview: query.needsReview,
       });
     }
 

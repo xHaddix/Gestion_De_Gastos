@@ -64,14 +64,6 @@ class EnvironmentVariables {
 
   @IsString()
   @IsNotEmpty()
-  JWT_SECRET!: string;
-
-  @IsString()
-  @IsNotEmpty()
-  JWT_EXPIRES_IN!: string;
-
-  @IsString()
-  @IsNotEmpty()
   S3_ENDPOINT!: string;
 
   @IsString()

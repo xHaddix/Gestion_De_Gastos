@@ -27,8 +27,8 @@ const TOTAL_PATTERNS = [
 ];
 
 const INVOICE_PATTERNS = [
-  /(?:factura|ticket|recibo|invoice)\s*(?:n[oº°]\.?|n[uú]mero|number|no\.?|#)?\s*[:#]?\s*([A-Za-z0-9][A-Za-z0-9\-/.]*\d[A-Za-z0-9\-/.]*)/i,
-  /(?:n[oº°]\.?\s*(?:de\s+)?factura|no\.?\s*(?:de\s+)?factura)\s*[:#]?\s*([A-Za-z0-9][A-Za-z0-9\-/.]*\d[A-Za-z0-9\-/.]*)/i,
+  /(?:factura|ticket|recibo|invoice)\s*(?:n[oº°0-9]\.?|n[uú]mero|number|no\.?|#)?\s*[:#]?\s*([A-Za-z0-9][A-Za-z0-9\-/.]*\d[A-Za-z0-9\-/.]*)/i,
+  /(?:n[oº°0-9]\.?\s*(?:de\s+)?factura|no\.?\s*(?:de\s+)?factura)\s*[:#]?\s*([A-Za-z0-9][A-Za-z0-9\-/.]*\d[A-Za-z0-9\-/.]*)/i,
 ];
 
 const DATE_PATTERNS = [

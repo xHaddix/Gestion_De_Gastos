@@ -34,7 +34,7 @@ export class VisionExtractorService implements OnModuleInit {
     const apiKey = this.configService.get<string>('GEMINI_API_KEY');
     const modelName = this.configService.get<string>(
       'GEMINI_MODEL',
-      'gemini-flash-latest',
+      'gemini-3.6-flash',
     );
 
     this.model = apiKey
@@ -64,7 +64,7 @@ export class VisionExtractorService implements OnModuleInit {
       return {};
     }
 
-    const maxAttempts = 2;
+    const maxAttempts = 3;
     const base64 = image.toString('base64');
 
     for (let attempt = 1; ; attempt++) {
@@ -79,9 +79,9 @@ export class VisionExtractorService implements OnModuleInit {
         const message = (error as Error).message;
         if (attempt < maxAttempts) {
           this.logger.warn(
-            `Extracción por visión (intento ${attempt}) falló (${message}). Reintentando…`,
+            `Extracción por visión (intento ${attempt}/${maxAttempts}) falló (${message}). Reintentando…`,
           );
-          await new Promise((resolve) => setTimeout(resolve, 1500 * attempt));
+          await new Promise((resolve) => setTimeout(resolve, 2000 * attempt));
           continue;
         }
         this.logger.warn(

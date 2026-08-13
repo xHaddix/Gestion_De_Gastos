@@ -2,8 +2,9 @@ import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { randomUUID } from 'crypto';
 import { Repository } from 'typeorm';
+import { OcrService } from '../../ocr/ocr.service';
 import { StorageService } from '../../storage/storage.service';
-import { Document } from '../model/document.entity';
+import { Document, DocumentStatus } from '../model/document.entity';
 
 @Injectable()
 export class DocumentsService {
@@ -11,6 +12,7 @@ export class DocumentsService {
     @InjectRepository(Document)
     private readonly documentsRepository: Repository<Document>,
     private readonly storageService: StorageService,
+    private readonly ocrService: OcrService,
   ) {}
 
   async create(file: Express.Multer.File): Promise<Document> {
@@ -26,7 +28,21 @@ export class DocumentsService {
       sizeBytes: file.size,
     });
 
-    return this.documentsRepository.save(document);
+    const saved = await this.documentsRepository.save(document);
+
+    try {
+      const rawText = await this.ocrService.recognize(
+        file.buffer,
+        file.mimetype,
+      );
+      saved.rawText = rawText;
+      saved.status = DocumentStatus.Ready;
+    } catch {
+      saved.status = DocumentStatus.Failed;
+      saved.errorMessage = 'No se pudo procesar el documento mediante OCR';
+    }
+
+    return this.attachDownloadUrl(await this.documentsRepository.save(saved));
   }
 
   async findAll(): Promise<Document[]> {

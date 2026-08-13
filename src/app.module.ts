@@ -6,6 +6,7 @@ import { AppService } from './app.service';
 import { AuthModule } from './auth/auth.module';
 import { validate } from './common/config/env.validation';
 import { DocumentsModule } from './documents/documents.module';
+import { OcrModule } from './ocr/ocr.module';
 import { StorageModule } from './storage/storage.module';
 
 @Module({
@@ -30,6 +31,7 @@ import { StorageModule } from './storage/storage.module';
     }),
     AuthModule,
     StorageModule,
+    OcrModule,
     DocumentsModule,
   ],
   controllers: [AppController],

@@ -9,6 +9,7 @@ import {
   ParseUUIDPipe,
   Patch,
   Post,
+  Query,
   UploadedFile,
   UseInterceptors,
 } from '@nestjs/common';
@@ -26,6 +27,7 @@ import {
   ApiResponse,
   ApiTags,
 } from '@nestjs/swagger';
+import { QueryDocumentsDto } from '../dto/query-documents.dto';
 import { UpdateDocumentDto } from '../dto/update-document.dto';
 import { Document } from '../model/document.entity';
 import { DocumentsService } from '../services/documents.service';
@@ -69,14 +71,16 @@ export class DocumentsController {
   }
 
   @Get()
-  @ApiOperation({ summary: 'Listar todos los documentos' })
+  @ApiOperation({
+    summary: 'Listar documentos (filtrable por rango de fechas y categoría)',
+  })
   @ApiResponse({
     status: 200,
     description: 'Lista de documentos',
     type: [Document],
   })
-  findAll(): Promise<Document[]> {
-    return this.documentsService.findAll();
+  findAll(@Query() query: QueryDocumentsDto): Promise<Document[]> {
+    return this.documentsService.findAll(query);
   }
 
   @Get(':id')

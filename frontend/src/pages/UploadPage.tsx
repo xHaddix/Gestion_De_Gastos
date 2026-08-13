@@ -175,8 +175,8 @@ export function UploadPage() {
               </span>
             </div>
             <div className="result__item">
-              <span className="result__label">Moneda</span>
-              <span>{result.currency || '—'}</span>
+              <span className="result__label">NIT</span>
+              <span>{result.nit || '—'}</span>
             </div>
             <div className="result__item">
               <span className="result__label">Categoría</span>

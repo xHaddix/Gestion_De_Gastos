@@ -28,6 +28,15 @@ export class UpdateDocumentDto {
   invoiceNumber?: string | null;
 
   @ApiPropertyOptional({
+    example: '830.088.587-0',
+    description: 'NIT o identificación fiscal del proveedor',
+    nullable: true,
+  })
+  @IsOptional()
+  @IsString()
+  nit?: string | null;
+
+  @ApiPropertyOptional({
     example: '2026-08-13',
     description: 'Fecha del documento (YYYY-MM-DD)',
     nullable: true,
@@ -60,8 +69,8 @@ export class UpdateDocumentDto {
   total?: number | null;
 
   @ApiPropertyOptional({
-    example: 'EUR',
-    description: 'Moneda',
+    example: 'COP',
+    description: 'Moneda (por defecto COP)',
     nullable: true,
   })
   @IsOptional()

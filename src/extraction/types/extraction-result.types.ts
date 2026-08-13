@@ -11,6 +11,7 @@ export interface ExtractedField {
 export interface ExtractionResult {
   provider: ExtractedField;
   invoiceNumber: ExtractedField;
+  nit: ExtractedField;
   issueDate: ExtractedField;
   subtotal: ExtractedField;
   taxes: ExtractedField;
@@ -22,6 +23,7 @@ export interface ExtractionResult {
 export const FIELD_NAMES = [
   'provider',
   'invoiceNumber',
+  'nit',
   'issueDate',
   'subtotal',
   'taxes',

@@ -12,11 +12,11 @@ import type {
 interface FormState {
   provider: string;
   invoiceNumber: string;
+  nit: string;
   issueDate: string;
   subtotal: string;
   taxes: string;
   total: string;
-  currency: string;
   category: string;
 }
 
@@ -24,11 +24,11 @@ function toForm(document: Document): FormState {
   return {
     provider: document.provider ?? '',
     invoiceNumber: document.invoiceNumber ?? '',
+    nit: document.nit ?? '',
     issueDate: document.issueDate ?? '',
     subtotal: document.subtotal?.toString() ?? '',
     taxes: document.taxes?.toString() ?? '',
     total: document.total?.toString() ?? '',
-    currency: document.currency ?? '',
     category: document.category ?? '',
   };
 }
@@ -83,11 +83,11 @@ export function ReviewPage() {
       const payload: UpdateDocumentInput = {
         provider: form.provider || null,
         invoiceNumber: form.invoiceNumber || null,
+        nit: form.nit || null,
         issueDate: form.issueDate || null,
         subtotal: parseNumber(form.subtotal),
         taxes: parseNumber(form.taxes),
         total: parseNumber(form.total),
-        currency: form.currency || null,
         category: (form.category || null) as UpdateDocumentInput['category'],
       };
       const { data, message } = await api.patch<Document>(
@@ -209,6 +209,16 @@ export function ReviewPage() {
             </label>
 
             <label className="field">
+              <span className="field__label">NIT</span>
+              <input
+                className="input"
+                placeholder="830.088.587-0"
+                value={form.nit}
+                onChange={(e) => updateField('nit', e.target.value)}
+              />
+            </label>
+
+            <label className="field">
               <span className="field__label">
                 Fecha{' '}
                 {confidence.issueDate !== undefined && (
@@ -258,16 +268,6 @@ export function ReviewPage() {
                 className="input"
                 value={form.total}
                 onChange={(e) => updateField('total', e.target.value)}
-              />
-            </label>
-
-            <label className="field">
-              <span className="field__label">Moneda</span>
-              <input
-                className="input"
-                placeholder="EUR"
-                value={form.currency}
-                onChange={(e) => updateField('currency', e.target.value)}
               />
             </label>
 

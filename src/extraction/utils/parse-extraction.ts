@@ -17,6 +17,7 @@ const CATEGORY_KEYS: Record<string, ExpenseCategory> = {
 const JSON_TO_FIELD: [string, FieldName][] = [
   ['provider', 'provider'],
   ['invoiceNumber', 'invoiceNumber'],
+  ['nit', 'nit'],
   ['date', 'issueDate'],
   ['subtotal', 'subtotal'],
   ['taxes', 'taxes'],

@@ -28,6 +28,7 @@ export interface Document {
   rawText: string | null;
   provider: string | null;
   invoiceNumber: string | null;
+  nit: string | null;
   issueDate: string | null;
   subtotal: number | null;
   taxes: number | null;
@@ -52,6 +53,7 @@ export interface ApiEnvelope<T> {
 export interface UpdateDocumentInput {
   provider?: string | null;
   invoiceNumber?: string | null;
+  nit?: string | null;
   issueDate?: string | null;
   subtotal?: number | null;
   taxes?: number | null;

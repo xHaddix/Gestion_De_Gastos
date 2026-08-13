@@ -78,6 +78,11 @@ export class DocumentsService {
         category: query.category,
       });
     }
+    if (query.needsReview !== undefined) {
+      builder.andWhere('document.needsReview = :needsReview', {
+        needsReview: query.needsReview,
+      });
+    }
 
     const documents = await builder.getMany();
     return Promise.all(documents.map((doc) => this.attachDownloadUrl(doc)));

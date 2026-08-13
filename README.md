@@ -204,6 +204,13 @@ $ docker compose up
 
 Levanta tres servicios: `postgres` (PostgreSQL 16), `api` (NestJS en modo watch) y `pgweb` (cliente web para la base de datos), además de `minio` (almacenamiento de archivos S3-compatible).
 
+> **Nota:** si añades o actualizas dependencias y obtienes errores de módulos no encontrados (`Cannot find module '...'`), borra los volúmenes antes de reconstruir para no reutilizar `node_modules` desactualizados:
+>
+> ```bash
+> $ docker compose down -v
+> $ docker compose up --build
+> ```
+
 ### Base de datos (pgweb)
 
 pgweb queda disponible en `http://localhost:8080` y entra **directo, sin usuario ni contraseña**: la conexión se configura automáticamente desde tu `.env` (usa las mismas credenciales de `DB_*`). Puedes explorar tablas, lanzar queries SQL y exportar resultados.
@@ -239,26 +246,31 @@ prueba-tecnica/
 ├── openapi.yaml                 # Especificación OpenAPI de la API (español)
 ├── src/
 │   ├── common/
-│   │   └── config/
-│   │       └── env.validation.ts # Validación de variables de entorno
+│   │   ├── config/
+│   │   │   └── env.validation.ts # Validación de variables de entorno
+│   │   └── db/
+│   │       └── numeric.transformer.ts # Conversión numeric <-> number
 │   ├── auth/                     # Autenticación (JWT + PostgreSQL)
 │   │   ├── model/                # Entidad User y tipos del JWT
 │   │   ├── services/             # AuthService, JwtAuthGuard (+ tests)
 │   │   ├── controller/           # AuthController
 │   │   ├── dto/                  # RegisterDto y LoginDto
-│   │   └── interceptors/         # SanitizeUserInterceptor (quita el password)
+│   │   ├── interceptor/          # SanitizeUserInterceptor (quita el password)
+│   │   └── decorator/            # @CurrentUser (usuario autenticado)
 │   ├── documents/                # Gestión de documentos de gasto
 │   │   ├── model/                # Entidad Document (+ enums)
+│   │   ├── services/             # DocumentsService
 │   │   ├── controller/           # DocumentsController
-│   │   └── services/             # DocumentsService
+│   │   ├── dto/                  # UpdateDocumentDto, QueryDocumentsDto
+│   │   └── interceptor/          # DocumentSummaryInterceptor (lista resumida)
 │   ├── ocr/                      # Reconocimiento óptico de texto (Tesseract.js)
-│   │   └── ocr.service.ts        # OCR de imágenes y PDFs (pdf.js + canvas)
+│   │   └── services/             # OcrService (imágenes y PDFs)
 │   ├── extraction/               # Extracción de campos (reglas + LLM opcional)
 │   │   ├── services/             # RulesExtractor, LlmExtractor, Extraction (+ tests)
 │   │   ├── types/                # Tipos del resultado de extracción
 │   │   └── utils/                # Parseo de importes y fechas
 │   ├── storage/                  # Almacenamiento S3-compatible (MinIO)
-│   │   └── storage.service.ts    # Subida, URL firmada y borrado de archivos
+│   │   └── services/             # StorageService (subida, URL firmada, borrado)
 │   ├── app.module.ts             # Módulo raíz (Config, TypeORM, Auth, Documents)
 │   └── main.ts                   # Bootstrap: prefijo, pipes, helmet, Swagger
 └── test/

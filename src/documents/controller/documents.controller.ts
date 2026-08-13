@@ -29,6 +29,7 @@ import {
 } from '@nestjs/swagger';
 import { QueryDocumentsDto } from '../dto/query-documents.dto';
 import { UpdateDocumentDto } from '../dto/update-document.dto';
+import { DocumentSummaryInterceptor } from '../interceptor/document-summary.interceptor';
 import { Document } from '../model/document.entity';
 import { DocumentsService } from '../services/documents.service';
 
@@ -71,6 +72,7 @@ export class DocumentsController {
   }
 
   @Get()
+  @UseInterceptors(DocumentSummaryInterceptor)
   @ApiOperation({
     summary: 'Listar documentos (filtrable por rango de fechas y categoría)',
   })

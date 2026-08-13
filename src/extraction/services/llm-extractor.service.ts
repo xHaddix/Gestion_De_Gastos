@@ -10,7 +10,7 @@ const SYSTEM_PROMPT = `Eres un asistente que extrae información estructurada de
 Devuelve ÚNICAMENTE un objeto JSON con las siguientes claves:
 - "provider": proveedor o establecimiento (string o null)
 - "invoiceNumber": número de factura o documento (string o null)
-- "date": fecha del documento en formato YYYY-MM-DD (string o null)
+- "date": fecha de EMISIÓN del documento en formato YYYY-MM-DD (string o null)
 - "subtotal": subtotal sin impuestos (número o null)
 - "taxes": total de impuestos (número o null)
 - "total": total a pagar (número o null)
@@ -18,6 +18,9 @@ Devuelve ÚNICAMENTE un objeto JSON con las siguientes claves:
 - "category": una de: "alimentacion", "transporte", "tecnologia", "servicios", "otros"
 
 Reglas:
+- "date" debe ser la FECHA DE EMISIÓN de la factura (la fecha en que se emitió el documento, a menudo escrita a mano en el cuerpo del documento).
+- Ignora por completo las fechas de resolución, autorización o vigencia de la DIAN u organismos fiscales (por ejemplo "FORMULARIO DIAN No. ... - FECHA: 2018/11/08" o "RESOLUCIÓN DIAN ... FECHA: ..."). Esas NO son la fecha de la factura.
+- Si la fecha de emisión no es legible (escrita a mano o ilegible en el OCR), devuelve null para "date".
 - Usa null cuando no encuentres un campo.
 - No inventes valores.
 - Responde solo con JSON válido, sin texto adicional.`;

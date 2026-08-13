@@ -36,20 +36,50 @@ export function UploadPage() {
       return;
     }
     setUploading(true);
+    setResult(null);
     try {
       const formData = new FormData();
       formData.append('file', file);
-      const { data, message } = await api.upload<Document>(
-        '/documents',
-        formData,
-      );
-      setResult(data);
-      notify('success', message);
+      const { data } = await api.upload<Document>('/documents', formData);
+
+      if (data.status === 'processing') {
+        notify('info', 'Documento subido. Procesando OCR y extracción…');
+        await waitForProcessing(data.id);
+      } else {
+        setResult(data);
+        notify('success', 'Documento subido y procesado correctamente');
+      }
     } catch (error) {
       notify('error', (error as Error).message);
     } finally {
       setUploading(false);
     }
+  };
+
+  const waitForProcessing = async (id: string) => {
+    for (let attempt = 0; attempt < 30; attempt++) {
+      await new Promise((resolve) => setTimeout(resolve, 2000));
+      try {
+        const { data } = await api.get<Document>(`/documents/${id}`);
+        if (data.status !== 'processing' && data.status !== 'pending') {
+          setResult(data);
+          if (data.status === 'failed') {
+            notify(
+              'error',
+              data.errorMessage || 'No se pudo procesar el documento',
+            );
+          } else if (data.needsReview) {
+            notify('success', 'Documento procesado. Revisa los campos detectados.');
+          } else {
+            notify('success', 'Documento procesado correctamente');
+          }
+          return;
+        }
+      } catch {
+        // reintentar
+      }
+    }
+    notify('error', 'El procesamiento está tardando demasiado. Revisa la lista.');
   };
 
   return (

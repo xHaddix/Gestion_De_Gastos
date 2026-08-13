@@ -1,4 +1,5 @@
 import { Injectable, Logger, OnModuleDestroy } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import {
   createCanvas,
   DOMMatrix,
@@ -26,6 +27,8 @@ const MIN_PREPROCESS_WIDTH = 1500;
 export class OcrService implements OnModuleDestroy {
   private readonly logger = new Logger(OcrService.name);
   private worker: Worker | null = null;
+
+  constructor(private readonly configService: ConfigService) {}
 
   async onModuleDestroy(): Promise<void> {
     if (this.worker) {
@@ -76,8 +79,12 @@ export class OcrService implements OnModuleDestroy {
     if (!this.worker) {
       setLogging(false);
       this.logger.log(`Inicializando Tesseract (${OCR_LANGUAGES})...`);
+
+      const tessdataPath = this.configService.get<string>('TESSDATA_PATH');
       this.worker = await createWorker(OCR_LANGUAGES, 1, {
-        cachePath: path.join(os.tmpdir(), 'tesseract-cache'),
+        ...(tessdataPath
+          ? { langPath: tessdataPath, cachePath: tessdataPath }
+          : { cachePath: path.join(os.tmpdir(), 'tesseract-cache') }),
       });
     }
     return this.worker;

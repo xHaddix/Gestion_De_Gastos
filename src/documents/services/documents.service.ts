@@ -38,28 +38,45 @@ export class DocumentsService {
       storageKey,
       mimeType: file.mimetype,
       sizeBytes: file.size,
+      status: DocumentStatus.Processing,
     });
 
     const saved = await this.documentsRepository.save(document);
 
+    // Procesamiento en segundo plano (OCR + extracción) para no bloquear la subida.
+    void this.processDocument(saved.id, file.buffer, file.mimetype);
+
+    return this.attachDownloadUrl(saved);
+  }
+
+  private async processDocument(
+    id: string,
+    buffer: Buffer,
+    mimeType: string,
+  ): Promise<void> {
+    const document = await this.documentsRepository.findOneBy({ id });
+    if (!document) {
+      return;
+    }
+
     try {
-      const rawText = await this.ocrService.recognize(
-        file.buffer,
-        file.mimetype,
-      );
-      saved.rawText = rawText;
+      const rawText = await this.ocrService.recognize(buffer, mimeType);
+      document.rawText = rawText;
 
       const { result, needsReview } = await this.extractionService.extract({
         rawText: rawText ?? '',
-        image: { buffer: file.buffer, mimeType: file.mimetype },
+        image: { buffer, mimeType },
       });
-      this.applyExtraction(saved, result, needsReview);
-    } catch {
-      saved.status = DocumentStatus.Failed;
-      saved.errorMessage = 'No se pudo procesar el documento mediante OCR';
+      this.applyExtraction(document, result, needsReview);
+    } catch (error) {
+      document.status = DocumentStatus.Failed;
+      document.errorMessage =
+        error instanceof Error
+          ? error.message
+          : 'No se pudo procesar el documento';
     }
 
-    return this.attachDownloadUrl(await this.documentsRepository.save(saved));
+    await this.documentsRepository.save(document);
   }
 
   async findAll(query: QueryDocumentsDto = {}): Promise<Document[]> {

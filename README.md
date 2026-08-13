@@ -182,6 +182,17 @@ El OCR usa [Tesseract.js](https://tesseract.projectnaptha.com/) con los idiomas 
 
 El resultado se guarda en el campo `rawText` del documento.
 
+## Extracción de información
+
+Tras el OCR, el sistema extrae los campos estructurados (proveedor, número de factura, fecha, subtotal, impuestos, total, moneda y categoría) combinando dos estrategias:
+
+1. **Reglas y expresiones regulares** (`RulesExtractorService`): siempre activas, deterministas y sin coste.
+2. **LLM opcional** (`LlmExtractorService`): se usa únicamente si se define `OPENAI_API_KEY` en el entorno.
+
+Ambos resultados se **fusionan** campo a campo. Si coinciden, la confianza es alta; si discrepan, el valor se marca con confianza baja. Cada campo recibe un **nivel de confianza (0-1)** que se guarda en el documento.
+
+Un documento se marca como **`needs_review`** cuando falta un campo crítico (proveedor o total) o cuando algún campo tiene confianza baja, para que el usuario lo revise antes de darlo por bueno.
+
 ## Docker
 
 ### Desarrollo (hot reload)
@@ -241,6 +252,10 @@ prueba-tecnica/
 │   │   └── services/             # DocumentsService
 │   ├── ocr/                      # Reconocimiento óptico de texto (Tesseract.js)
 │   │   └── ocr.service.ts        # OCR de imágenes y PDFs (pdf.js + canvas)
+│   ├── extraction/               # Extracción de campos (reglas + LLM opcional)
+│   │   ├── services/             # RulesExtractor, LlmExtractor, Extraction (+ tests)
+│   │   ├── types/                # Tipos del resultado de extracción
+│   │   └── utils/                # Parseo de importes y fechas
 │   ├── storage/                  # Almacenamiento S3-compatible (MinIO)
 │   │   └── storage.service.ts    # Subida, URL firmada y borrado de archivos
 │   ├── app.module.ts             # Módulo raíz (Config, TypeORM, Auth, Documents)

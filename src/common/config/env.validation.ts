@@ -4,6 +4,7 @@ import {
   IsEnum,
   IsInt,
   IsNotEmpty,
+  IsOptional,
   IsString,
   Min,
   validateSync,
@@ -88,6 +89,14 @@ class EnvironmentVariables {
   @IsString()
   @IsNotEmpty()
   S3_BUCKET!: string;
+
+  @IsOptional()
+  @IsString()
+  OPENAI_API_KEY?: string;
+
+  @IsOptional()
+  @IsString()
+  OPENAI_MODEL?: string;
 }
 
 export function validate(config: Record<string, unknown>) {

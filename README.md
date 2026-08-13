@@ -155,6 +155,7 @@ Esto actualiza el archivo `openapi.yaml` en la raíz del proyecto.
 | POST   | `/api/documents`   | Sube un documento (JPG/PNG/PDF) a MinIO        |
 | GET    | `/api/documents`   | Lista todos los documentos                     |
 | GET    | `/api/documents/:id` | Consulta un documento (incluye URL firmada)  |
+| PATCH  | `/api/documents/:id` | Corrige campos y marca el documento como revisado |
 | DELETE | `/api/documents/:id` | Elimina el documento y su archivo            |
 
 ### Ejemplo de uso con `curl`

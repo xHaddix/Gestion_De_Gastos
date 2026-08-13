@@ -1,4 +1,5 @@
 import {
+  Body,
   Controller,
   Delete,
   Get,
@@ -6,6 +7,7 @@ import {
   HttpStatus,
   Param,
   ParseUUIDPipe,
+  Patch,
   Post,
   UploadedFile,
   UseInterceptors,
@@ -24,6 +26,7 @@ import {
   ApiResponse,
   ApiTags,
 } from '@nestjs/swagger';
+import { UpdateDocumentDto } from '../dto/update-document.dto';
 import { Document } from '../model/document.entity';
 import { DocumentsService } from '../services/documents.service';
 
@@ -86,6 +89,24 @@ export class DocumentsController {
   @ApiNotFoundResponse({ description: 'Documento no encontrado' })
   findOne(@Param('id', ParseUUIDPipe) id: string): Promise<Document> {
     return this.documentsService.findOne(id);
+  }
+
+  @Patch(':id')
+  @ApiOperation({
+    summary:
+      'Corregir o completar los campos de un documento (revisión humana)',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Documento actualizado y marcado como revisado',
+    type: Document,
+  })
+  @ApiNotFoundResponse({ description: 'Documento no encontrado' })
+  update(
+    @Param('id', ParseUUIDPipe) id: string,
+    @Body() updateDocumentDto: UpdateDocumentDto,
+  ): Promise<Document> {
+    return this.documentsService.update(id, updateDocumentDto);
   }
 
   @Delete(':id')

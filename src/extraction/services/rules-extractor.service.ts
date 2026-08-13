@@ -9,6 +9,7 @@ import {
   findAllAmounts,
   normalizeDate,
   parseAmount,
+  stripAccents,
 } from '../utils/text.utils';
 
 const LABELED_CONFIDENCE = 0.9;
@@ -74,6 +75,7 @@ const STOPWORDS = new Set([
 const CATEGORY_KEYWORDS: Record<ExpenseCategory, string[]> = {
   [ExpenseCategory.Alimentacion]: [
     'restaurante',
+    'restaurantes',
     'comida',
     'supermercado',
     'mercado',
@@ -86,6 +88,12 @@ const CATEGORY_KEYWORDS: Record<ExpenseCategory, string[]> = {
     'dinner',
     'burger',
     'sushi',
+    'heladeria',
+    'fruteria',
+    'verduleria',
+    'bebida',
+    'pollo',
+    'hamburguesa',
   ],
   [ExpenseCategory.Transporte]: [
     'uber',
@@ -94,41 +102,85 @@ const CATEGORY_KEYWORDS: Record<ExpenseCategory, string[]> = {
     'didi',
     'gasolinera',
     'combustible',
+    'gasolina',
     'peaje',
     'autobus',
     'tren',
     'metro',
     'vuelo',
     'aerolinea',
+    'avion',
     'transporte',
     'parking',
     'estacionamiento',
+    'bicicleta',
+    'motocicleta',
+    'viaje',
   ],
   [ExpenseCategory.Tecnologia]: [
-    'amazon',
+    'portatil',
+    'laptop',
+    'notebook',
+    'lenovo',
+    'acer',
+    'asus',
+    'dell',
     'apple',
-    'microsoft',
+    'samsung',
+    'xiaomi',
+    'huawei',
+    'iphone',
+    'ipad',
+    'macbook',
+    'monitor',
+    'pantalla',
+    'teclado',
+    'mouse',
+    'impresora',
+    'celular',
+    'tablet',
+    'memoria',
+    'procesador',
+    'computador',
+    'computadora',
+    'ordenador',
     'software',
     'hardware',
     'electronica',
-    'ordenador',
-    'computadora',
-    'laptop',
-    'hosting',
-    'dominio',
+    'tecnologia',
+    'amazon',
+    'microsoft',
     'google',
     'mercadolibre',
+    'antena',
+    'accesorio',
+    'componentes',
+    'servidor',
+    'router',
+    'modem',
+    'audifonos',
+    'cargador',
+    'televisor',
+    'consola',
+    'playstation',
+    'xbox',
+    'nintendo',
+    'dron',
+    'computo',
   ],
   [ExpenseCategory.Servicios]: [
     'electricidad',
+    'energia',
     'agua',
-    'luz',
     'gas natural',
     'internet',
     'telefonia',
+    'telefono',
     'seguro',
+    'seguros',
     'renta',
     'alquiler',
+    'arriendo',
     'banco',
     'suscripcion',
     'netflix',
@@ -136,6 +188,10 @@ const CATEGORY_KEYWORDS: Record<ExpenseCategory, string[]> = {
     'telefonica',
     'movistar',
     'fibra',
+    'poliza',
+    'predial',
+    'aseo',
+    'limpieza',
   ],
   [ExpenseCategory.Otros]: [],
 };
@@ -234,7 +290,7 @@ export class RulesExtractorService {
       }
     }
 
-    const generic = text.match(/\b(\d{1,2}[/-]\d{1,2}[/-]\d{2,4})\b/);
+    const generic = text.match(/\b(\d{1,2}[/.-]\d{1,2}[/.-]\d{2,4})\b/);
     if (generic) {
       const normalized = normalizeDate(generic[1]);
       if (normalized) {
@@ -242,7 +298,7 @@ export class RulesExtractorService {
       }
     }
 
-    const iso = text.match(/\b(\d{4}-\d{2}-\d{2})\b/);
+    const iso = text.match(/\b(\d{4}[-/.]\d{2}[-/.]\d{2})\b/);
     if (iso) {
       return { value: iso[1], confidence: 0.85, source: 'rules' };
     }
@@ -309,7 +365,7 @@ export class RulesExtractorService {
   }
 
   private extractCategory(text: string): ExtractedField {
-    const lower = text.toLowerCase();
+    const lower = stripAccents(text.toLowerCase());
 
     let best: ExpenseCategory | null = null;
     let bestScore = 0;

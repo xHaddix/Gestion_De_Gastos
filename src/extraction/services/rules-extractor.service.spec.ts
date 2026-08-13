@@ -58,6 +58,18 @@ describe('RulesExtractorService', () => {
     expect(result.total.value).toBe(1234.56);
   });
 
+  it('detecta categoría tecnología con tildes y palabras de producto', () => {
+    const result = service.extract(
+      [
+        'TECNOLOGÍA PORTÁTILES',
+        'Venta de portátiles Lenovo Acer',
+        'Total: 2.500.000 COP',
+      ].join('\n'),
+    );
+
+    expect(result.category.value).toBe(ExpenseCategory.Tecnologia);
+  });
+
   it('devuelve campos nulos cuando no hay información', () => {
     const result = service.extract('Texto sin datos relevantes');
 

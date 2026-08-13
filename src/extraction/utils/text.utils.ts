@@ -40,12 +40,12 @@ export function findAllAmounts(text: string): number[] {
 export function normalizeDate(raw: string): string | null {
   const s = raw.trim();
 
-  let match = s.match(/^(\d{4})[-/](\d{1,2})[-/](\d{1,2})$/);
+  let match = s.match(/^(\d{4})[/.-](\d{1,2})[/.-](\d{1,2})$/);
   if (match) {
     return `${match[1]}-${pad(match[2])}-${pad(match[3])}`;
   }
 
-  match = s.match(/^(\d{1,2})[/-](\d{1,2})[/-](\d{2,4})$/);
+  match = s.match(/^(\d{1,2})[/.-](\d{1,2})[/.-](\d{2,4})$/);
   if (match) {
     const year = match[3].length === 2 ? `20${match[3]}` : match[3];
     return `${year}-${pad(match[2])}-${pad(match[1])}`;

@@ -17,10 +17,10 @@ import {
   ApiTags,
   ApiUnauthorizedResponse,
 } from '@nestjs/swagger';
-import { CurrentUser } from '../current-user.decorator';
+import { CurrentUser } from '../decorator/current-user.decorator';
 import { LoginDto } from '../dto/login.dto';
 import { RegisterDto } from '../dto/register.dto';
-import { SanitizeUserInterceptor } from '../interceptors/sanitize-user.interceptor';
+import { SanitizeUserInterceptor } from '../interceptor/sanitize-user.interceptor';
 import type { JwtPayload } from '../model/jwt-payload';
 import { User } from '../model/user.entity';
 import { AuthService, LoginResult } from '../services/auth.service';

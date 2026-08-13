@@ -7,8 +7,8 @@ import {
   ExtractionResult,
   FIELD_NAMES,
 } from '../../extraction/types/extraction-result.types';
-import { OcrService } from '../../ocr/ocr.service';
-import { StorageService } from '../../storage/storage.service';
+import { OcrService } from '../../ocr/services/ocr.service';
+import { StorageService } from '../../storage/services/storage.service';
 import { QueryDocumentsDto } from '../dto/query-documents.dto';
 import { UpdateDocumentDto } from '../dto/update-document.dto';
 import {

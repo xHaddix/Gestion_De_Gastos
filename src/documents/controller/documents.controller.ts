@@ -27,6 +27,7 @@ import {
   ApiResponse,
   ApiTags,
 } from '@nestjs/swagger';
+import { ResponseMessage } from '../../common/decorator/response-message.decorator';
 import { QueryDocumentsDto } from '../dto/query-documents.dto';
 import { UpdateDocumentDto } from '../dto/update-document.dto';
 import { DocumentSummaryInterceptor } from '../interceptor/document-summary.interceptor';
@@ -41,6 +42,7 @@ export class DocumentsController {
   constructor(private readonly documentsService: DocumentsService) {}
 
   @Post()
+  @ResponseMessage('Documento subido y procesado correctamente')
   @UseInterceptors(FileInterceptor('file'))
   @ApiConsumes('multipart/form-data')
   @ApiOperation({ summary: 'Subir un documento de gasto (JPG, PNG o PDF)' })
@@ -86,6 +88,7 @@ export class DocumentsController {
   }
 
   @Get(':id')
+  @ResponseMessage('Documento encontrado')
   @ApiOperation({ summary: 'Consultar un documento por su id' })
   @ApiResponse({
     status: 200,
@@ -98,6 +101,7 @@ export class DocumentsController {
   }
 
   @Patch(':id')
+  @ResponseMessage('Documento actualizado y marcado como revisado')
   @ApiOperation({
     summary:
       'Corregir o completar los campos de un documento (revisión humana)',
@@ -116,9 +120,10 @@ export class DocumentsController {
   }
 
   @Delete(':id')
-  @HttpCode(HttpStatus.NO_CONTENT)
+  @ResponseMessage('Documento eliminado correctamente')
+  @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Eliminar un documento y su archivo asociado' })
-  @ApiResponse({ status: 204, description: 'Documento eliminado' })
+  @ApiResponse({ status: 200, description: 'Documento eliminado' })
   @ApiNotFoundResponse({ description: 'Documento no encontrado' })
   remove(@Param('id', ParseUUIDPipe) id: string): Promise<void> {
     return this.documentsService.remove(id);

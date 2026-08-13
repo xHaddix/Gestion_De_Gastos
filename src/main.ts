@@ -1,11 +1,12 @@
 import { Logger, ValidationPipe } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { NestFactory } from '@nestjs/core';
+import { NestFactory, Reflector } from '@nestjs/core';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import helmet from 'helmet';
 import type { Response } from 'express';
 import yaml from 'js-yaml';
 import { AppModule } from './app.module';
+import { TransformInterceptor } from './common/interceptor/transform.interceptor';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
@@ -24,6 +25,7 @@ async function bootstrap() {
       transformOptions: { enableImplicitConversion: true },
     }),
   );
+  app.useGlobalInterceptors(new TransformInterceptor(app.get(Reflector)));
 
   const swaggerEnabled = configService.get<boolean>('SWAGGER_ENABLED', false);
   const swaggerPath = configService.get<string>('SWAGGER_PATH', 'docs');

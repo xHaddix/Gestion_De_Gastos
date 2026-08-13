@@ -134,6 +134,24 @@ $ npm run swagger:generate
 
 Esto actualiza el archivo `openapi.yaml` en la raíz del proyecto.
 
+## Formato de respuesta
+
+Todas las respuestas exitosas de la API van envueltas en un objeto uniforme:
+
+```json
+{
+  "success": true,
+  "message": "Mensaje descriptivo",
+  "data": { }
+}
+```
+
+- `success`: siempre `true` en respuestas exitosas.
+- `message`: mensaje descriptivo (p. ej. `"Se encontraron 2 resultado(s)"`, `"No se encontraron resultados"`, `"Documento eliminado correctamente"`).
+- `data`: el contenido real de la respuesta (el documento, la lista, etc.).
+
+Los errores siguen el formato estándar de NestJS (`{ statusCode, message, error }`).
+
 ## Endpoints
 
 ### Otros

@@ -127,7 +127,7 @@ paths:
           schema:
             type: string
       responses:
-        '204':
+        '200':
           description: Documento eliminado
         '404':
           description: Documento no encontrado

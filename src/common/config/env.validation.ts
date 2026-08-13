@@ -68,6 +68,26 @@ class EnvironmentVariables {
   @IsString()
   @IsNotEmpty()
   JWT_EXPIRES_IN!: string;
+
+  @IsString()
+  @IsNotEmpty()
+  S3_ENDPOINT!: string;
+
+  @IsString()
+  @IsNotEmpty()
+  S3_REGION!: string;
+
+  @IsString()
+  @IsNotEmpty()
+  S3_ACCESS_KEY!: string;
+
+  @IsString()
+  @IsNotEmpty()
+  S3_SECRET_KEY!: string;
+
+  @IsString()
+  @IsNotEmpty()
+  S3_BUCKET!: string;
 }
 
 export function validate(config: Record<string, unknown>) {

@@ -75,6 +75,11 @@ Todas las variables se validan al arrancar (la aplicación no inicia si falta al
 | `DB_DATABASE`        | Nombre de la base de datos         | `prueba_tecnica`         |
 | `JWT_SECRET`         | Secreto para firmar los JWT        | *(cambiar en producción)* |
 | `JWT_EXPIRES_IN`     | Expiración del token               | `1h`                     |
+| `S3_ENDPOINT`        | Endpoint S3-compatible (MinIO)     | `http://localhost:9000`  |
+| `S3_REGION`          | Región del bucket                  | `us-east-1`              |
+| `S3_ACCESS_KEY`      | Clave de acceso S3                 | `minioadmin`             |
+| `S3_SECRET_KEY`      | Clave secreta S3                   | `minioadmin`             |
+| `S3_BUCKET`          | Bucket donde se guardan los archivos | `documentos`           |
 
 ## Ejecución
 
@@ -143,6 +148,15 @@ Esto actualiza el archivo `openapi.yaml` en la raíz del proyecto.
 | ------ | ------ | ------------------------- |
 | GET    | `/api` | Mensaje de bienvenida     |
 
+### Documentos
+
+| Método | Ruta               | Descripción                                    |
+| ------ | ------------------ | ---------------------------------------------- |
+| POST   | `/api/documents`   | Sube un documento (JPG/PNG/PDF) a MinIO        |
+| GET    | `/api/documents`   | Lista todos los documentos                     |
+| GET    | `/api/documents/:id` | Consulta un documento (incluye URL firmada)  |
+| DELETE | `/api/documents/:id` | Elimina el documento y su archivo            |
+
 ### Ejemplo de uso con `curl`
 
 ```bash
@@ -167,7 +181,7 @@ Los mensajes de error y las descripciones de Swagger están en **español** (p. 
 $ docker compose up
 ```
 
-Levanta tres servicios: `postgres` (PostgreSQL 16), `api` (NestJS en modo watch) y `pgweb` (cliente web para la base de datos).
+Levanta tres servicios: `postgres` (PostgreSQL 16), `api` (NestJS en modo watch) y `pgweb` (cliente web para la base de datos), además de `minio` (almacenamiento de archivos S3-compatible).
 
 ### Base de datos (pgweb)
 
@@ -212,7 +226,13 @@ prueba-tecnica/
 │   │   ├── controller/           # AuthController
 │   │   ├── dto/                  # RegisterDto y LoginDto
 │   │   └── interceptors/         # SanitizeUserInterceptor (quita el password)
-│   ├── app.module.ts             # Módulo raíz (Config, TypeORM, Auth)
+│   ├── documents/                # Gestión de documentos de gasto
+│   │   ├── model/                # Entidad Document (+ enums)
+│   │   ├── controller/           # DocumentsController
+│   │   └── services/             # DocumentsService
+│   ├── storage/                  # Almacenamiento S3-compatible (MinIO)
+│   │   └── storage.service.ts    # Subida, URL firmada y borrado de archivos
+│   ├── app.module.ts             # Módulo raíz (Config, TypeORM, Auth, Documents)
 │   └── main.ts                   # Bootstrap: prefijo, pipes, helmet, Swagger
 └── test/
     └── app.e2e-spec.ts           # Tests e2e

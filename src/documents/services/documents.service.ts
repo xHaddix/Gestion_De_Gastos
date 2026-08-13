@@ -9,6 +9,7 @@ import {
 } from '../../extraction/types/extraction-result.types';
 import { OcrService } from '../../ocr/ocr.service';
 import { StorageService } from '../../storage/storage.service';
+import { UpdateDocumentDto } from '../dto/update-document.dto';
 import {
   Document,
   DocumentStatus,
@@ -72,24 +73,72 @@ export class DocumentsService {
   }
 
   async findOne(id: string): Promise<Document> {
-    const document = await this.documentsRepository.findOneBy({ id });
-
-    if (!document) {
-      throw new NotFoundException(`Documento con id ${id} no encontrado`);
-    }
-
+    const document = await this.findEntity(id);
     return this.attachDownloadUrl(document);
   }
 
+  async update(id: string, dto: UpdateDocumentDto): Promise<Document> {
+    const document = await this.findEntity(id);
+    const confidence = { ...(document.confidence ?? {}) };
+
+    if (dto.provider !== undefined) {
+      document.provider = dto.provider;
+      confidence.provider = 1;
+    }
+    if (dto.invoiceNumber !== undefined) {
+      document.invoiceNumber = dto.invoiceNumber;
+      confidence.invoiceNumber = 1;
+    }
+    if (dto.issueDate !== undefined) {
+      document.issueDate = dto.issueDate;
+      confidence.issueDate = 1;
+    }
+    if (dto.subtotal !== undefined) {
+      document.subtotal = dto.subtotal;
+      confidence.subtotal = 1;
+    }
+    if (dto.taxes !== undefined) {
+      document.taxes = dto.taxes;
+      confidence.taxes = 1;
+    }
+    if (dto.total !== undefined) {
+      document.total = dto.total;
+      confidence.total = 1;
+    }
+    if (dto.currency !== undefined) {
+      document.currency = dto.currency;
+      confidence.currency = 1;
+    }
+    if (dto.category !== undefined) {
+      document.category = dto.category;
+      confidence.category = 1;
+    }
+
+    document.confidence = confidence;
+    document.needsReview = false;
+    document.status = DocumentStatus.Ready;
+    document.errorMessage = null;
+
+    return this.attachDownloadUrl(
+      await this.documentsRepository.save(document),
+    );
+  }
+
   async remove(id: string): Promise<void> {
+    const document = await this.findEntity(id);
+
+    await this.storageService.remove(document.storageKey);
+    await this.documentsRepository.remove(document);
+  }
+
+  private async findEntity(id: string): Promise<Document> {
     const document = await this.documentsRepository.findOneBy({ id });
 
     if (!document) {
       throw new NotFoundException(`Documento con id ${id} no encontrado`);
     }
 
-    await this.storageService.remove(document.storageKey);
-    await this.documentsRepository.remove(document);
+    return document;
   }
 
   private async attachDownloadUrl(document: Document): Promise<Document> {

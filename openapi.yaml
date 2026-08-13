@@ -62,6 +62,18 @@ paths:
               - tecnologia
               - servicios
               - otros
+        - name: status
+          required: false
+          in: query
+          description: Filtrar por estado del documento
+          schema:
+            type: string
+            enum:
+              - pending
+              - processing
+              - needs_review
+              - ready
+              - failed
         - name: needsReview
           required: false
           in: query

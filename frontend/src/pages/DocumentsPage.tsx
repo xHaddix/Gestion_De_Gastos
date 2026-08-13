@@ -17,14 +17,14 @@ interface Filters {
   from: string;
   to: string;
   category: string;
-  needsReview: string;
+  status: string;
 }
 
 const EMPTY_FILTERS: Filters = {
   from: '',
   to: '',
   category: '',
-  needsReview: '',
+  status: '',
 };
 
 export function DocumentsPage() {
@@ -44,7 +44,7 @@ export function DocumentsPage() {
       if (filters.from) params.set('from', filters.from);
       if (filters.to) params.set('to', filters.to);
       if (filters.category) params.set('category', filters.category);
-      if (filters.needsReview) params.set('needsReview', filters.needsReview);
+      if (filters.status) params.set('status', filters.status);
 
       const query = params.toString();
       const { data } = await api.get<Document[]>(
@@ -84,7 +84,7 @@ export function DocumentsPage() {
   };
 
   const hasFilters =
-    filters.from || filters.to || filters.category || filters.needsReview;
+    filters.from || filters.to || filters.category || filters.status;
 
   return (
     <div className="page">
@@ -104,60 +104,83 @@ export function DocumentsPage() {
       </div>
 
       <div className="filters card">
-        <label className="field">
-          <span className="field__label">Desde</span>
-          <input
-            type="date"
-            className="input"
-            value={filters.from}
-            onChange={(e) => setFilters({ ...filters, from: e.target.value })}
-          />
-        </label>
-        <label className="field">
-          <span className="field__label">Hasta</span>
-          <input
-            type="date"
-            className="input"
-            value={filters.to}
-            onChange={(e) => setFilters({ ...filters, to: e.target.value })}
-          />
-        </label>
-        <label className="field">
-          <span className="field__label">Categoría</span>
-          <select
-            className="input"
-            value={filters.category}
-            onChange={(e) =>
-              setFilters({ ...filters, category: e.target.value })
-            }
-          >
-            <option value="">Todas</option>
-            {CATEGORIES.map((category) => (
-              <option key={category} value={category}>
-                {CATEGORY_LABELS[category]}
-              </option>
-            ))}
-          </select>
-        </label>
-        <label className="field">
-          <span className="field__label">Estado</span>
-          <select
-            className="input"
-            value={filters.needsReview}
-            onChange={(e) =>
-              setFilters({ ...filters, needsReview: e.target.value })
-            }
-          >
-            <option value="">Todos</option>
-            <option value="true">Requiere revisión</option>
-            <option value="false">Completos</option>
-          </select>
-        </label>
-        {hasFilters && (
-          <button className="btn btn--ghost" onClick={clearFilters}>
-            Limpiar filtros
-          </button>
-        )}
+        <div className="filters__header">
+          <span className="filters__title">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <path d="M3 5h18M6 5v4M18 5v4M3 12h18M6 12v7M18 12v7" />
+            </svg>
+            Filtros
+          </span>
+          {hasFilters && (
+            <button className="btn btn--ghost btn--small" onClick={clearFilters}>
+              Limpiar
+            </button>
+          )}
+        </div>
+
+        <div className="filters__body">
+          <div className="field field--daterange">
+            <span className="field__label">Rango de fechas</span>
+            <div className="daterange">
+              <div className="daterange__input">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <rect x="3" y="5" width="18" height="16" rx="2" />
+                  <path d="M8 3v4M16 3v4M3 10h18" />
+                </svg>
+                <input
+                  type="date"
+                  value={filters.from}
+                  onChange={(e) => setFilters({ ...filters, from: e.target.value })}
+                />
+              </div>
+              <span className="daterange__sep">—</span>
+              <div className="daterange__input">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <rect x="3" y="5" width="18" height="16" rx="2" />
+                  <path d="M8 3v4M16 3v4M3 10h18" />
+                </svg>
+                <input
+                  type="date"
+                  value={filters.to}
+                  onChange={(e) => setFilters({ ...filters, to: e.target.value })}
+                />
+              </div>
+            </div>
+          </div>
+
+          <label className="field">
+            <span className="field__label">Categoría</span>
+            <select
+              className="input"
+              value={filters.category}
+              onChange={(e) =>
+                setFilters({ ...filters, category: e.target.value })
+              }
+            >
+              <option value="">Todas</option>
+              {CATEGORIES.map((category) => (
+                <option key={category} value={category}>
+                  {CATEGORY_LABELS[category]}
+                </option>
+              ))}
+            </select>
+          </label>
+
+          <label className="field">
+            <span className="field__label">Estado</span>
+            <select
+              className="input"
+              value={filters.status}
+              onChange={(e) => setFilters({ ...filters, status: e.target.value })}
+            >
+              <option value="">Todos</option>
+              <option value="ready">Completos (listos)</option>
+              <option value="needs_review">Requieren revisión</option>
+              <option value="processing">Procesando</option>
+              <option value="failed">Fallidos</option>
+            </select>
+          </label>
+        </div>
       </div>
 
       {loading ? (

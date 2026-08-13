@@ -95,6 +95,11 @@ export class DocumentsService {
         category: query.category,
       });
     }
+    if (query.status) {
+      builder.andWhere('document.status = :status', {
+        status: query.status,
+      });
+    }
     if (query.needsReview !== undefined) {
       builder.andWhere('document.needsReview = :needsReview', {
         needsReview: query.needsReview,

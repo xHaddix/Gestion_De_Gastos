@@ -36,9 +36,10 @@ export function formatMoney(value: number | null, currency?: string | null): str
   if (value === null || value === undefined) {
     return '—';
   }
-  return new Intl.NumberFormat('es-ES', {
+  return new Intl.NumberFormat('es-CO', {
     style: 'currency',
-    currency: currency || 'EUR',
+    currency: currency || 'COP',
+    maximumFractionDigits: 0,
   }).format(value);
 }
 

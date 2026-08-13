@@ -69,14 +69,28 @@ export function parseAmount(raw: string): number | null {
   const lastDot = s.lastIndexOf('.');
 
   if (lastComma >= 0 && lastDot >= 0) {
+    // Ambos presentes: el último separador es el decimal (formato COP).
     if (lastComma > lastDot) {
+      // coma decimal -> quitar puntos de miles, coma a punto
       s = s.replace(/\./g, '').replace(',', '.');
     } else {
+      // punto decimal -> quitar comas de miles
       s = s.replace(/,/g, '');
     }
   } else if (lastComma >= 0) {
     const decimals = s.slice(lastComma + 1);
+    // En COP la coma es decimal solo si tiene 1-2 dígitos; con 3 es separador de miles.
     s = decimals.length === 3 ? s.replace(',', '') : s.replace(',', '.');
+  } else if (lastDot >= 0) {
+    const dotCount = (s.match(/\./g) ?? []).length;
+    if (dotCount > 1) {
+      // Varios puntos -> separadores de miles.
+      s = s.replace(/\./g, '');
+    } else {
+      const decimals = s.slice(lastDot + 1);
+      // Un solo punto: 3 dígitos = miles (830.090), 1-2 dígitos = decimal (100.00).
+      s = decimals.length === 3 ? s.replace('.', '') : s;
+    }
   }
 
   const value = Number.parseFloat(s);
@@ -85,7 +99,7 @@ export function parseAmount(raw: string): number | null {
 
 export function findAllAmounts(text: string): number[] {
   const amounts: number[] = [];
-  const regex = /[-+]?\d{1,3}(?:[.,]\d{3})*[.,]\d{2}/g;
+  const regex = /[-+]?\d{1,3}(?:[.,]\d{3})*(?:[.,]\d{2})?/g;
   let match: RegExpExecArray | null;
   while ((match = regex.exec(text)) !== null) {
     const value = parseAmount(match[0]);

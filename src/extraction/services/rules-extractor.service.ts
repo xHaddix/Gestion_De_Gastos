@@ -15,16 +15,28 @@ import {
 const LABELED_CONFIDENCE = 0.9;
 const FALLBACK_CONFIDENCE = 0.5;
 
+// Importe en formato COP: miles con punto, decimales opcionales con coma.
+const AMOUNT_PATTERN = '[-+]?\\d{1,3}(?:[.,]\\d{3})*(?:[.,]\\d{2})?';
+
 const SUBTOTAL_PATTERNS = [
-  /\b(?:subtotal|base\s+imponible|importe\s+sin\s+iva|total\s+sin\s+impuestos)\b\s*[:#]?\s*([-+]?\d{1,3}(?:[.,]\d{3})*[.,]\d{2})/i,
+  new RegExp(
+    `\\b(?:subtotal|base\\s+imponible|importe\\s+sin\\s+iva|total\\s+sin\\s+impuestos)\\b\\s*[:#]?\\s*(${AMOUNT_PATTERN})`,
+    'i',
+  ),
 ];
 
 const TAXES_PATTERNS = [
-  /\b(?:iva|impuestos?|tax|igv|itbms|vat)\b\s*[:#]?\s*([-+]?\d{1,3}(?:[.,]\d{3})*[.,]\d{2})/i,
+  new RegExp(
+    `\\b(?:iva|impuestos?|tax|igv|itbms|vat)\\b\\s*[:#]?\\s*(${AMOUNT_PATTERN})`,
+    'i',
+  ),
 ];
 
 const TOTAL_PATTERNS = [
-  /\b(?:importe\s+total|total(?:\s+(?:a\s+pagar|factura|final|general|neto))?|a\s+pagar|monto\s+total|gran\s+total)\b\s*[:#]?\s*([-+]?\d{1,3}(?:[.,]\d{3})*[.,]\d{2})/i,
+  new RegExp(
+    `\\b(?:importe\\s+total|total(?:(?:\\s+(?:a\\s+pagar|factura|final|general|neto)))?|a\\s+pagar|monto\\s+total|gran\\s+total)\\b\\s*[:#]?\\s*(${AMOUNT_PATTERN})`,
+    'i',
+  ),
 ];
 
 const INVOICE_PATTERNS = [
@@ -211,6 +223,7 @@ export class RulesExtractorService {
     return {
       provider: this.extractProvider(lines),
       invoiceNumber: this.extractFirstMatch(text, INVOICE_PATTERNS),
+      nit: this.extractNit(text),
       issueDate: this.extractDate(text),
       subtotal: this.extractAmountByLabel(text, SUBTOTAL_PATTERNS),
       taxes: this.extractAmountByLabel(text, TAXES_PATTERNS),
@@ -218,6 +231,20 @@ export class RulesExtractorService {
       currency: this.extractCurrency(text),
       category: this.extractCategory(text),
     };
+  }
+
+  private extractNit(text: string): ExtractedField {
+    const match = text.match(
+      /\b(?:nit\.?|n\.?i\.?t\.?)\s*[:#.]?\s*(\d[\d.-]{5,})\b/i,
+    );
+    if (match?.[1]) {
+      return {
+        value: match[1].trim(),
+        confidence: 0.9,
+        source: 'rules',
+      };
+    }
+    return emptyField();
   }
 
   private extractProvider(lines: string[]): ExtractedField {
@@ -357,14 +384,8 @@ export class RulesExtractorService {
       };
     }
 
-    if (/€/.test(text)) {
-      return { value: 'EUR', confidence: 0.7, source: 'rules' };
-    }
-    if (/\$/.test(text)) {
-      return { value: 'USD', confidence: 0.4, source: 'rules' };
-    }
-
-    return emptyField();
+    // Moneda por defecto: pesos colombianos (COP).
+    return { value: 'COP', confidence: 0.9, source: 'rules' };
   }
 
   private extractCategory(text: string): ExtractedField {

@@ -62,6 +62,15 @@ paths:
               - tecnologia
               - servicios
               - otros
+        - name: needsReview
+          required: false
+          in: query
+          description: >-
+            Filtrar documentos que requieren revisión (campos incompletos o de
+            baja confianza)
+          schema:
+            example: true
+            type: boolean
       responses:
         '200':
           description: Lista de documentos
@@ -192,6 +201,11 @@ components:
           example: A-12345
           description: Número de factura o documento
           nullable: true
+        nit:
+          type: object
+          example: 830.088.587-0
+          description: NIT o identificación fiscal del proveedor
+          nullable: true
         issueDate:
           type: object
           example: '2026-08-13'
@@ -289,6 +303,11 @@ components:
           example: F-2026-00123
           description: Número de factura o documento
           nullable: true
+        nit:
+          type: object
+          example: 830.088.587-0
+          description: NIT o identificación fiscal del proveedor
+          nullable: true
         issueDate:
           type: object
           example: '2026-08-13'
@@ -311,8 +330,8 @@ components:
           nullable: true
         currency:
           type: object
-          example: EUR
-          description: Moneda
+          example: COP
+          description: Moneda (por defecto COP)
           nullable: true
         category:
           type: string

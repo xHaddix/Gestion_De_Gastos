@@ -58,6 +58,28 @@ describe('RulesExtractorService', () => {
     expect(result.total.value).toBe(1234.56);
   });
 
+  it('interpreta importes en formato COP (miles con punto)', () => {
+    const result = service.extract(
+      ['Factura', 'Total: 830.090 COP'].join('\n'),
+    );
+
+    expect(result.total.value).toBe(830090);
+  });
+
+  it('extrae el NIT del proveedor', () => {
+    const result = service.extract(
+      ['FACTURA DE VENTA', 'NIT. 830.088.587-0', 'Total: 100.00'].join('\n'),
+    );
+
+    expect(result.nit.value).toBe('830.088.587-0');
+  });
+
+  it('usa COP como moneda por defecto', () => {
+    const result = service.extract('Factura\nTotal: 100.00');
+
+    expect(result.currency.value).toBe('COP');
+  });
+
   it('detecta categoría tecnología con tildes y palabras de producto', () => {
     const result = service.extract(
       [

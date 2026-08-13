@@ -92,6 +92,14 @@ export class Document {
   invoiceNumber: string | null;
 
   @ApiPropertyOptional({
+    example: '830.088.587-0',
+    description: 'NIT o identificación fiscal del proveedor',
+    nullable: true,
+  })
+  @Column({ type: 'varchar', nullable: true })
+  nit: string | null;
+
+  @ApiPropertyOptional({
     example: '2026-08-13',
     description: 'Fecha del documento (formato YYYY-MM-DD)',
     nullable: true,

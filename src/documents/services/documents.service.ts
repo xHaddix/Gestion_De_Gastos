@@ -105,6 +105,10 @@ export class DocumentsService {
       document.invoiceNumber = dto.invoiceNumber;
       confidence.invoiceNumber = 1;
     }
+    if (dto.nit !== undefined) {
+      document.nit = dto.nit;
+      confidence.nit = 1;
+    }
     if (dto.issueDate !== undefined) {
       document.issueDate = dto.issueDate;
       confidence.issueDate = 1;
@@ -171,11 +175,12 @@ export class DocumentsService {
   ): void {
     document.provider = result.provider.value as string | null;
     document.invoiceNumber = result.invoiceNumber.value as string | null;
+    document.nit = result.nit.value as string | null;
     document.issueDate = result.issueDate.value as string | null;
     document.subtotal = result.subtotal.value as number | null;
     document.taxes = result.taxes.value as number | null;
     document.total = result.total.value as number | null;
-    document.currency = result.currency.value as string | null;
+    document.currency = (result.currency.value as string | null) ?? 'COP';
     document.category = this.toCategory(result.category.value);
     document.confidence = this.toConfidenceMap(result);
     document.extractionRaw = this.toRaw(result);
